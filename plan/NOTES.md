@@ -1,4 +1,4 @@
-# KAOS Matter — Progress Notes
+# KAOS nanomatter — Progress Notes
 
 Living journal for the matter project. Raw material for future blog posts.
 

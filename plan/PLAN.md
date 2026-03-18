@@ -1,4 +1,4 @@
-# Plan: KAOS Matter — Custom Matter Controller + React UI
+# Plan: KAOS "nanomatter" — Custom Matter Controller + React UI
 
 ## Context
 
@@ -178,7 +178,7 @@ Follow the same GitHub Actions pattern as lista:
 
 ## Verification
 
-- `https://matter.kaoshome.dev` loads the React UI showing all commissioned devices
+- `https://nanomatter.kaoshome.dev` loads the React UI showing all commissioned devices
 - Toggling a lamp in the UI physically turns it on/off
 - HA still controls the same devices independently (multi-fabric proof)
 - `GET /api/devices` returns live state reflecting actual device status
