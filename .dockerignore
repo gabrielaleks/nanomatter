@@ -1,0 +1,6 @@
+node_modules
+logs
+dist
+test-coverage
+frontend/node_modules
+backend/node_modules

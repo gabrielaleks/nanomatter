@@ -1,0 +1,30 @@
+services:
+  controller:
+    build:
+      context: .
+      dockerfile: ./controller/Dockerfile
+      target: development
+    container_name: nanomatter-controller
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./controller:/controller
+    networks:
+      - nanomatter-network
+
+  # frontend:
+  #   build:
+  #     context: .
+  #     dockerfile: ./frontend/Dockerfile
+  #     target: development
+  #   container_name: nanomatter-frontend
+  #   ports:
+  #     - '5173:5173'
+  #   volumes:
+  #     - ./frontend:/frontend
+  #   networks:
+  #     - nanomatter-network
+
+networks:
+  nanomatter-network:
+    driver: bridge

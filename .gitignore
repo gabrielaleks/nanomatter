@@ -1,0 +1,22 @@
+# Environment
+.env
+
+# Node modules
+node_modules
+**/node_modules/**
+
+# Build output
+dist
+build
+
+# Misc
+.DS_Store
+tmp
+logs
+*.log
+
+# Editor directories and files
+.vscode
+
+# Jest
+test-coverage
