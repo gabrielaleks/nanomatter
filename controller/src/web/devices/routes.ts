@@ -12,6 +12,7 @@ export function createRouter(matterService: MatterService): Router {
   router.post('/devices/:id/toggle', controller.toggleDevice.bind(controller))
   router.post('/devices/:id/on', controller.turnDeviceOn.bind(controller))
   router.post('/devices/:id/off', controller.turnDeviceOff.bind(controller))
+  router.delete('/devices/:id', controller.decommissionDevice.bind(controller))
 
   return router
 }
@@ -23,11 +24,13 @@ curl -X GET http://localhost:3000/api/devices/commission/123
 
 curl -X POST http://localhost:3000/api/devices/commission \
      -H "Content-Type: application/json" \
-     -d '{"setupCode": "1278-800-9522"}'
+     -d '{"pairingCode": "0184-573-4538"}'
 
 curl -X POST http://localhost:3000/api/devices/1/toggle
 
 curl -X POST http://localhost:3000/api/devices/1/on
 
 curl -X POST http://localhost:3000/api/devices/1/off
+
+curl -X DELETE http://localhost:3000/api/devices/1
 */

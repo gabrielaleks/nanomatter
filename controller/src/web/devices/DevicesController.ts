@@ -19,7 +19,7 @@ export class DevicesController {
   constructor(private matterService: MatterService) { }
 
   async commissionDevice(req: Request, res: Response) {
-    const { pairingCode, ble = true } = req.body
+    const { pairingCode } = req.body
 
     if (!pairingCode || typeof pairingCode !== 'string') {
       res.status(400).json({ error: 'pairingCode is required' })
@@ -56,7 +56,6 @@ export class DevicesController {
             discovery: {
               identifierData: {
                 shortDiscriminator: pairingData.shortDiscriminator,
-                ...(ble ? { transport: "ble" } : {}),
               },
             },
           })
@@ -182,5 +181,32 @@ export class DevicesController {
     console.log('Toggled lamp off');
 
     res.status(200).json({ success: true, message: `Device with id ${id} was turned off successfully` })
+  }
+
+  async decommissionDevice(req: Request, res: Response) {
+    const id = req.params.id
+
+    if (!id || typeof id !== 'string') {
+      res.status(400).json({ error: 'Device id is required' })
+      return
+    }
+
+    const controller = await this.matterService.getController()
+    const nodeId = NodeId(id)
+
+    if (!controller.isNodeCommissioned(nodeId)) {
+      res.status(404).json({ error: `Node ${id} is not commissioned` })
+      return
+    }
+
+    const node = await controller.getNode(nodeId)
+    try {
+      await node.decommission()
+    } catch {
+      // Device unreachable, remove locally anyway
+      await controller.removeNode(nodeId, false)
+    }
+
+    res.status(200).json({ success: true, message: `Device ${id} removed` })
   }
 }
