@@ -20,3 +20,6 @@ logs
 
 # Jest
 test-coverage
+
+# Matter config
+matter-storage

@@ -17,7 +17,7 @@ class ControllerNode {
     const adminFabricLabel = "matter.js Controller";
 
     const commissioningController = new CommissioningController({
-      environment: { environment, id: uniqueId },
+      environment: { environment, id: "controller" },
       autoConnect: false,
       adminFabricLabel
     });
@@ -32,10 +32,12 @@ class ControllerNode {
     console.log(`Commissioning controller started with id ${uniqueId} and label "${adminFabricLabel}"`);
 
     // 🔹 HA-provided manual pairing code
-    const manualSetupCode = "1515-441-4700"
+    const manualSetupCode = "3058-911-8233"
     const pairingData = ManualPairingCodeCodec.decode(manualSetupCode);
 
     console.log("Decoded pairing data:", pairingData);
+
+    const useBle = process.argv.includes("--ble");
 
     const options: NodeCommissioningOptions = {
       passcode: pairingData.passcode,
@@ -46,16 +48,20 @@ class ControllerNode {
       discovery: {
         identifierData: {
           shortDiscriminator: pairingData.shortDiscriminator,
-          transport: "ble",
-        }
+          transport: "ble"
+        },
       }
     };
 
     try {
       const nodeId = await commissioningController.commissionNode(options);
       console.log(`Commissioning successfully done with nodeId ${nodeId}`);
+      console.log(`\nNode ID: ${nodeId}\n`);
+      await commissioningController.close();
+      process.exit(0);
     } catch (err) {
       logger.error("Commissioning failed:", err);
+      process.exit(1);
     }
   }
 }

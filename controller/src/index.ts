@@ -6,11 +6,18 @@ if (process.env.DEPLOYMENT_ENVIRONMENT?.toLowerCase() === 'test') {
 }
 
 import { createServer } from './app'
+import { matterService } from './application/services/MatterService'
 
-const app = createServer()
 const frontendHost = process.env.LOCAL_FRONTEND_HOST
 const port = process.env.PORT
 
-app.listen(port, () => {
-  console.log(`Server is running at ${frontendHost}:${port}`)
-})
+async function start() {
+  await matterService.initialize()
+
+  const app = createServer()
+  app.listen(port, () => {
+    console.log(`Server is running at ${frontendHost}:${port}`)
+  })
+}
+
+start()
