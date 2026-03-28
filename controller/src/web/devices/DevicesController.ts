@@ -132,6 +132,61 @@ export class DevicesController {
     res.status(200).json({ ...sessionInformation, devicesStatus })
   }
 
+  async getDeviceById(req: Request, res: Response) {
+    const id = req.params.id
+
+    if (!id || typeof id !== 'string') {
+      res.status(400).json({ error: 'Device id is required' })
+      return
+    }
+
+    const controller = await this.matterService.getController()
+    const nodeId = NodeId(id)
+
+    if (!controller.isNodeCommissioned(nodeId)) {
+      res.status(404).json({ error: `Node ${id} is not commissioned` })
+      return
+    }
+
+    const activeSessionInformation = controller.getActiveSessionInformation()
+
+    let sessionInformation = {}
+    if (activeSessionInformation[0] && activeSessionInformation[0].fabric) {
+      sessionInformation = {
+        fabricInformation: {
+          label: activeSessionInformation[0].fabric.label,
+          fabricId: Number(activeSessionInformation[0].fabric.fabricId),
+          nodeId: Number(activeSessionInformation[0].fabric.nodeId),
+        },
+        lastInteraction:
+          activeSessionInformation[0].lastInteractionTimestamp ?
+            new Date(activeSessionInformation[0].lastInteractionTimestamp).toISOString() :
+            '-',
+        lastActive:
+          activeSessionInformation[0].lastActiveTimestamp ?
+            new Date(activeSessionInformation[0].lastActiveTimestamp).toISOString() :
+            '-',
+      }
+    }
+
+    const node = await controller.getNode(nodeId)
+
+    const onOff = node.getClusterClientForDevice(EndpointNumber(1), OnOff.Complete)
+    const level = node.getClusterClientForDevice(EndpointNumber(1), LevelControl.Complete)
+    const color = node.getClusterClientForDevice(EndpointNumber(1), ColorControl.Complete)
+
+    const deviceStatus = {
+      id: id,
+      on: onOff?.getOnOffAttributeFromCache(),
+      brightness: level?.getCurrentLevelAttributeFromCache(),
+      colorTemperature: color?.getColorTemperatureMiredsAttributeFromCache(),
+      hue: color?.getCurrentHueAttributeFromCache(),
+      saturation: color?.getCurrentSaturationAttributeFromCache(),
+    }
+
+    res.status(200).json({ ...sessionInformation, deviceStatus })
+  }
+
   async toggleDevice(req: Request, res: Response) {
     const id = req.params.id
 
@@ -177,7 +232,7 @@ export class DevicesController {
 
     console.log('Toggled lamp on');
 
-    res.status(200).json({ success: true, message: `Device with id ${id} was turned onsuccessfully` })
+    res.status(200).json({ success: true, message: `Device with id ${id} was turned on successfully` })
   }
 
   async turnDeviceOff(req: Request, res: Response) {
