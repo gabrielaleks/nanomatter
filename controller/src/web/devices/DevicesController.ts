@@ -2,7 +2,7 @@ import { Request, Response } from 'express'
 import { v4 as uuidv4 } from 'uuid'
 import { GeneralCommissioning } from "@matter/main/clusters"
 import { ManualPairingCodeCodec } from "@matter/main/types"
-import { matterService } from '../../application/services/MatterService'
+import { MatterService } from '../../application/services/MatterService'
 import { getLogger } from '../../utils/logger'
 
 type CommissionJob = {
@@ -15,6 +15,8 @@ const jobs = new Map<string, CommissionJob>()
 let commissioningInProgress = false
 
 export class DevicesController {
+  constructor(private matterService: MatterService) { }
+
   async commissionDevice(req: Request, res: Response) {
     const { setupCode, ble = true } = req.body
 
@@ -40,10 +42,10 @@ export class DevicesController {
     jobs.set(jobId, { status: 'pending' })
     commissioningInProgress = true
 
-      // Run commissioning in background — do not await
+      // Run commissioning in background
       ; (async () => {
         try {
-          const controller = matterService.getController()
+          const controller = await this.matterService.getController()
           const nodeId = await controller.commissionNode({
             passcode: pairingData.passcode,
             commissioning: {
@@ -73,7 +75,7 @@ export class DevicesController {
   }
 
   async getCommissionStatus(req: Request, res: Response) {
-    const job = jobs.get(req.params.jobId)
+    const job = jobs.get(req.params.jobId.toString())
 
     if (!job) {
       res.status(404).json({ error: 'Job not found' })

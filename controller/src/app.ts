@@ -4,8 +4,9 @@ import { corsMiddleware } from './middlewares/cors.middleware'
 import { notFoundMiddleware } from './middlewares/notfound.middleware'
 import { getLogger } from './utils/logger'
 import { errorMiddleware } from './middlewares/error.middleware'
+import { MatterService } from './application/services/MatterService'
 
-export function createServer(): Express {
+export function createServer(matterService: MatterService): Express {
   const app = express()
 
   app.use(corsMiddleware())
@@ -23,7 +24,7 @@ export function createServer(): Express {
 
   app.use(
     '/api',
-    createDevicesRouter()
+    createDevicesRouter(matterService)
   )
 
   app.use(notFoundMiddleware)
