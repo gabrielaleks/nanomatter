@@ -8,18 +8,26 @@ export function createRouter(matterService: MatterService): Router {
 
   router.get('/devices', controller.getAllDevices.bind(controller))
   router.post('/devices/commission', controller.commissionDevice.bind(controller))
-  // router.get('/devices/commission/:jobId', controller.getCommissionStatus.bind(controller))
+  router.get('/devices/:jobId/commission', controller.getCommissionStatus.bind(controller))
+  router.post('/devices/:id/toggle', controller.toggleDevice.bind(controller))
+  router.post('/devices/:id/on', controller.turnDeviceOn.bind(controller))
+  router.post('/devices/:id/off', controller.turnDeviceOff.bind(controller))
 
   return router
 }
 
 /**
+curl -X GET http://localhost:3000/api/devices
 
-curl -X GET https://localhost:3000/api/devices
+curl -X GET http://localhost:3000/api/devices/commission/123
 
-curl -X GET https://localhost:3000/api/devices/commission/123
-
-curl -X POST https://localhost:3000/api/devices/commission \
+curl -X POST http://localhost:3000/api/devices/commission \
      -H "Content-Type: application/json" \
-     -d '{"setupCode": "1218-324-1590"}'
- */
+     -d '{"setupCode": "1278-800-9522"}'
+
+curl -X POST http://localhost:3000/api/devices/1/toggle
+
+curl -X POST http://localhost:3000/api/devices/1/on
+
+curl -X POST http://localhost:3000/api/devices/1/off
+*/

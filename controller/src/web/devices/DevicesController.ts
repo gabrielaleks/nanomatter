@@ -1,9 +1,10 @@
-import { Request, Response } from 'express'
 import { v4 as uuidv4 } from 'uuid'
+import { Request, Response } from 'express'
 import { GeneralCommissioning } from "@matter/main/clusters"
-import { ManualPairingCodeCodec } from "@matter/main/types"
+import { EndpointNumber, ManualPairingCodeCodec, NodeId } from "@matter/main/types"
 import { MatterService } from '../../application/services/MatterService'
 import { getLogger } from '../../utils/logger'
+import { OnOff } from "@matter/main/clusters"
 
 type CommissionJob = {
   status: 'pending' | 'completed' | 'failed'
@@ -18,18 +19,18 @@ export class DevicesController {
   constructor(private matterService: MatterService) { }
 
   async commissionDevice(req: Request, res: Response) {
-    const { setupCode, ble = true } = req.body
+    const { pairingCode, ble = true } = req.body
 
-    if (!setupCode || typeof setupCode !== 'string') {
-      res.status(400).json({ error: 'setupCode is required' })
+    if (!pairingCode || typeof pairingCode !== 'string') {
+      res.status(400).json({ error: 'pairingCode is required' })
       return
     }
 
     let pairingData
     try {
-      pairingData = ManualPairingCodeCodec.decode(setupCode)
+      pairingData = ManualPairingCodeCodec.decode(pairingCode)
     } catch {
-      res.status(400).json({ error: 'Invalid setupCode' })
+      res.status(400).json({ error: 'Invalid pairingCode' })
       return
     }
 
@@ -86,6 +87,100 @@ export class DevicesController {
   }
 
   async getAllDevices(_req: Request, res: Response) {
-    res.status(200).json({ message: 'success!' })
+    const controller = await this.matterService.getController()
+
+    const activeSessionInformation = controller.getActiveSessionInformation()
+    const commissionedNodes = controller.getCommissionedNodes().map(node => Number(node))
+
+    let sessionInformation = {}
+    if (activeSessionInformation[0] && activeSessionInformation[0].fabric)
+      sessionInformation = {
+        fabricInformation: {
+          label: activeSessionInformation[0].fabric.label,
+          fabricId: Number(activeSessionInformation[0].fabric.fabricId),
+          nodeId: Number(activeSessionInformation[0].fabric.nodeId),
+        },
+        lastInteraction:
+          activeSessionInformation[0].lastInteractionTimestamp ?
+            new Date(activeSessionInformation[0].lastInteractionTimestamp).toISOString() :
+            '-',
+        lastActive:
+          activeSessionInformation[0].lastActiveTimestamp ?
+            new Date(activeSessionInformation[0].lastActiveTimestamp).toISOString() :
+            '-',
+      }
+
+    res.status(200).json({ ...sessionInformation, nodes: commissionedNodes })
+  }
+
+  async toggleDevice(req: Request, res: Response) {
+    const id = req.params.id
+
+    if (!id || typeof id !== 'string') {
+      res.status(400).json({ error: 'Device id is required' })
+      return
+    }
+
+    const controller = await this.matterService.getController()
+    const nodeId = NodeId(id)
+    const node = await controller.getNode(nodeId)
+    node.connect()
+
+    const onOff = node.getClusterClientForDevice(EndpointNumber(1), OnOff.Complete);
+    if (!onOff) throw new Error(`No OnOff cluster found on endpoint 1 for node ${nodeId}`);
+
+    const currentState = await onOff.getOnOffAttribute();
+    console.log(`Current state: ${currentState ? "on" : "off"}`);
+
+    await onOff.toggle();
+    console.log(`Toggled lamp ${currentState ? "off" : "on"}`);
+
+    res.status(200).json({ success: true, message: `Device with id ${id} was toggled successfully` })
+  }
+
+  async turnDeviceOn(req: Request, res: Response) {
+    const id = req.params.id
+
+    if (!id || typeof id !== 'string') {
+      res.status(400).json({ error: 'Device id is required' })
+      return
+    }
+
+    const controller = await this.matterService.getController()
+    const nodeId = NodeId(id)
+    const node = await controller.getNode(nodeId)
+    node.connect()
+
+    const onOff = node.getClusterClientForDevice(EndpointNumber(1), OnOff.Complete);
+    if (!onOff) throw new Error(`No OnOff cluster found on endpoint 1 for node ${nodeId}`);
+
+    await onOff.on()
+
+    console.log('Toggled lamp on');
+
+    res.status(200).json({ success: true, message: `Device with id ${id} was turned onsuccessfully` })
+  }
+
+  async turnDeviceOff(req: Request, res: Response) {
+    const id = req.params.id
+
+    if (!id || typeof id !== 'string') {
+      res.status(400).json({ error: 'Device id is required' })
+      return
+    }
+
+    const controller = await this.matterService.getController()
+    const nodeId = NodeId(id)
+    const node = await controller.getNode(nodeId)
+    node.connect()
+
+    const onOff = node.getClusterClientForDevice(EndpointNumber(1), OnOff.Complete);
+    if (!onOff) throw new Error(`No OnOff cluster found on endpoint 1 for node ${nodeId}`);
+
+    await onOff.off()
+
+    console.log('Toggled lamp off');
+
+    res.status(200).json({ success: true, message: `Device with id ${id} was turned off successfully` })
   }
 }
