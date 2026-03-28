@@ -198,7 +198,6 @@ export class DevicesController {
     const controller = await this.matterService.getController()
     const nodeId = NodeId(id)
     const node = await controller.getNode(nodeId)
-    node.connect()
 
     const onOff = node.getClusterClientForDevice(EndpointNumber(1), OnOff.Complete);
     if (!onOff) throw new Error(`No OnOff cluster found on endpoint 1 for node ${nodeId}`);
@@ -223,7 +222,6 @@ export class DevicesController {
     const controller = await this.matterService.getController()
     const nodeId = NodeId(id)
     const node = await controller.getNode(nodeId)
-    node.connect()
 
     const onOff = node.getClusterClientForDevice(EndpointNumber(1), OnOff.Complete);
     if (!onOff) throw new Error(`No OnOff cluster found on endpoint 1 for node ${nodeId}`);
@@ -256,6 +254,126 @@ export class DevicesController {
     console.log('Toggled lamp off');
 
     res.status(200).json({ success: true, message: `Device with id ${id} was turned off successfully` })
+  }
+
+  async adjustDeviceBrightness(req: Request, res: Response) {
+    const id = req.params.id
+    const { brightnessLevel, transitionTime = 1 } = req.body
+
+    if (!id || typeof id !== 'string') {
+      res.status(400).json({ error: 'Device id is required' })
+      return
+    }
+
+    if (brightnessLevel == undefined || typeof brightnessLevel !== 'number') {
+      res.status(400).json({ error: 'brightnessLevel is required' })
+      return
+    }
+
+    if (brightnessLevel < 0 || brightnessLevel > 254) {
+      res.status(400).json({ error: 'brightnessLevel should be a number between 0 and 254' })
+      return
+    }
+
+    if (transitionTime && typeof transitionTime !== 'number') {
+      res.status(400).json({ error: 'transitionTime must be a number' })
+      return
+    }
+
+    const controller = await this.matterService.getController()
+    const nodeId = NodeId(id)
+
+    if (!controller.isNodeCommissioned(nodeId)) {
+      res.status(404).json({ error: `Node ${id} is not commissioned` })
+      return
+    }
+
+    const node = await controller.getNode(nodeId)
+
+    const level = node.getClusterClientForDevice(EndpointNumber(1), LevelControl.Complete)
+
+    await level?.moveToLevelWithOnOff({
+      level: brightnessLevel,
+      transitionTime,
+      optionsMask: {},
+      optionsOverride: {}
+    })
+
+    console.log(`Adjusted brightness to ${brightnessLevel} with transition time ${transitionTime}`);
+
+    res.status(200).json({ success: true, message: `Adjusted brightness of device with id ${id}` })
+  }
+
+  async adjustDeviceColor(req: Request, res: Response) {
+    const id = req.params.id
+    const { colorTemperatureMireds, hue, saturation, transitionTime = 1 } = req.body
+
+    if (!id || typeof id !== 'string') {
+      res.status(400).json({ error: 'Device id is required' })
+      return
+    }
+
+    const hasColorTemp = colorTemperatureMireds !== undefined
+    const hasHueSat = hue !== undefined || saturation !== undefined
+
+    if (!hasColorTemp && !hasHueSat) {
+      res.status(400).json({ error: 'Provide colorTemperatureMireds or hue/saturation' })
+      return
+    }
+
+    if (hasColorTemp && typeof colorTemperatureMireds !== 'number') {
+      res.status(400).json({ error: 'colorTemperatureMireds must be a number' })
+      return
+    }
+
+    if (hasHueSat) {
+      if (hue !== undefined && (typeof hue !== 'number' || hue < 0 || hue > 254)) {
+        res.status(400).json({ error: 'hue must be a number between 0 and 254' })
+        return
+      }
+      if (saturation !== undefined && (typeof saturation !== 'number' || saturation < 0 || saturation > 254)) {
+        res.status(400).json({ error: 'saturation must be a number between 0 and 254' })
+        return
+      }
+    }
+
+    if (typeof transitionTime !== 'number') {
+      res.status(400).json({ error: 'transitionTime must be a number' })
+      return
+    }
+
+    const controller = await this.matterService.getController()
+    const nodeId = NodeId(id)
+
+    if (!controller.isNodeCommissioned(nodeId)) {
+      res.status(404).json({ error: `Node ${id} is not commissioned` })
+      return
+    }
+
+    const node = await controller.getNode(nodeId)
+    const color = node.getClusterClientForDevice(EndpointNumber(1), ColorControl.Complete)
+
+    if (hasColorTemp) {
+      await color?.moveToColorTemperature({
+        colorTemperatureMireds,
+        transitionTime,
+        optionsMask: {},
+        optionsOverride: {}
+      })
+    } else {
+      const currentHue = hue ?? color?.getCurrentHueAttributeFromCache() ?? 0
+      const currentSat = saturation ?? color?.getCurrentSaturationAttributeFromCache() ?? 0
+
+      await color?.moveToHueAndSaturation({
+        hue: currentHue,
+        saturation: currentSat,
+        transitionTime,
+        optionsMask: {},
+        optionsOverride: {}
+      })
+    }
+
+    res.status(200).json({ success: true, message: `Adjusted color of device with id ${id}` })
   }
 
   async decommissionDevice(req: Request, res: Response) {
