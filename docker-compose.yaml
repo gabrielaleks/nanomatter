@@ -5,17 +5,12 @@ services:
       dockerfile: ./controller/Dockerfile
       target: development
     container_name: nanomatter-controller
-    # network_mode: host        # required for mDNS multicast (Matter device discovery)
-    privileged: true # required for BLE commissioning
-    ports:
-      - '3000:3000'
+    network_mode: host  # required for mDNS multicast (Matter device discovery)
     volumes:
       - ./controller:/controller
-      - ./controller/matter-storage:/matter # temporary
-      - /var/run/dbus:/var/run/dbus # required for BLE via BlueZ
+      - ./controller/matter-storage:/matter
     environment:
       - MATTER_STORAGE_PATH=/matter
-      - DBUS_SYSTEM_BUS_ADDRESS=unix:path=/var/run/dbus/system_bus_socket
 
   # frontend:
   #   build:
