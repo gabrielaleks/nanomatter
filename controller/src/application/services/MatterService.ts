@@ -12,7 +12,7 @@ export class MatterService {
 
       this.controller = new CommissioningController({
         environment: { environment, id: "controller" },
-        autoConnect: false,
+        autoConnect: true,
         adminFabricLabel: "nanomatter",
       })
 

@@ -12,6 +12,9 @@ const matterService = new MatterService()
 const app = createServer(matterService)
 const port = process.env.PORT
 
-app.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}`)
+matterService.getController().then(() => {
+  app.listen(port, () => {
+    console.log(`Server is running at http://localhost:${port}`)
+  })
 })
+
