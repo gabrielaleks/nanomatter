@@ -4,7 +4,7 @@ import { GeneralCommissioning } from "@matter/main/clusters"
 import { EndpointNumber, ManualPairingCodeCodec, NodeId } from "@matter/main/types"
 import { MatterService } from '../../application/services/MatterService'
 import { getLogger } from '../../utils/logger'
-import { OnOff } from "@matter/main/clusters"
+import { OnOff, LevelControl, ColorControl } from "@matter/main/clusters"
 
 type CommissionJob = {
   status: 'pending' | 'completed' | 'failed'
@@ -109,7 +109,27 @@ export class DevicesController {
             '-',
       }
 
-    res.status(200).json({ ...sessionInformation, nodes: commissionedNodes })
+    const devicesStatus = await Promise.all(
+      commissionedNodes.map(async (commissionedNode) => {
+        const nodeId = NodeId(commissionedNode)
+        const node = await controller.getNode(nodeId)
+
+        const onOff = node.getClusterClientForDevice(EndpointNumber(1), OnOff.Complete)
+        const level = node.getClusterClientForDevice(EndpointNumber(1), LevelControl.Complete)
+        const color = node.getClusterClientForDevice(EndpointNumber(1), ColorControl.Complete)
+
+        return {
+          id: commissionedNode,
+          on: onOff?.getOnOffAttributeFromCache(),
+          brightness: level?.getCurrentLevelAttributeFromCache(),
+          colorTemperature: color?.getColorTemperatureMiredsAttributeFromCache(),
+          hue: color?.getCurrentHueAttributeFromCache(),
+          saturation: color?.getCurrentSaturationAttributeFromCache(),
+        }
+      })
+    )
+
+    res.status(200).json({ ...sessionInformation, devicesStatus })
   }
 
   async toggleDevice(req: Request, res: Response) {
