@@ -8,13 +8,16 @@ export function createRouter(matterService: MatterService): Router {
 
   router.get('/devices', controller.getAllDevices.bind(controller))
   router.get('/devices/:id', controller.getDeviceById.bind(controller))
+
   router.post('/devices/commission', controller.commissionDevice.bind(controller))
   router.get('/devices/:jobId/commission', controller.getCommissionStatus.bind(controller))
+
   router.post('/devices/:id/toggle', controller.toggleDevice.bind(controller))
   router.post('/devices/:id/on', controller.turnDeviceOn.bind(controller))
   router.post('/devices/:id/off', controller.turnDeviceOff.bind(controller))
   router.post('/devices/:id/brightness', controller.adjustDeviceBrightness.bind(controller))
   router.post('/devices/:id/color', controller.adjustDeviceColor.bind(controller))
+
   router.delete('/devices/:id', controller.decommissionDevice.bind(controller))
 
   return router
