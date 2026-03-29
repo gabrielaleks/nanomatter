@@ -15,6 +15,13 @@ type CommissionJob = {
 const jobs = new Map<string, CommissionJob>()
 let commissioningInProgress = false
 
+const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> => {
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('Device timed out')), ms)
+  )
+  return Promise.race([promise, timeout])
+}
+
 export class DevicesController {
   constructor(private matterService: MatterService) { }
 
@@ -170,13 +177,16 @@ export class DevicesController {
     const onOff = node.getClusterClientForDevice(EndpointNumber(1), OnOff.Complete);
     if (!onOff) throw new Error(`No OnOff cluster found on endpoint 1 for node ${nodeId}`);
 
-    const currentState = await onOff.getOnOffAttribute();
-    console.log(`Current state: ${currentState ? "on" : "off"}`);
-
-    await onOff.toggle();
-    console.log(`Toggled lamp ${currentState ? "off" : "on"}`);
-
-    res.status(200).json({ success: true, message: `Device with id ${id} was toggled successfully` })
+    try {
+      const currentState = await onOff.getOnOffAttribute()
+      console.log(`Current state: ${currentState ? "on" : "off"}`);
+      await withTimeout(onOff.toggle(), 5000)
+      console.log(`Toggled lamp ${currentState ? "off" : "on"}`);
+      res.status(200).json({ success: true, message: `Device with id ${id} was toggled successfully` })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      res.status(503).json({ error: 'Device is unreachable', detail: message })
+    }
   }
 
   async turnDeviceOn(req: Request, res: Response) {
@@ -194,8 +204,7 @@ export class DevicesController {
     const onOff = node.getClusterClientForDevice(EndpointNumber(1), OnOff.Complete);
     if (!onOff) throw new Error(`No OnOff cluster found on endpoint 1 for node ${nodeId}`);
 
-    await onOff.on()
-
+    await withTimeout(onOff.on(), 5000)
     console.log('Toggled lamp on');
 
     res.status(200).json({ success: true, message: `Device with id ${id} was turned on successfully` })
@@ -217,7 +226,7 @@ export class DevicesController {
     const onOff = node.getClusterClientForDevice(EndpointNumber(1), OnOff.Complete);
     if (!onOff) throw new Error(`No OnOff cluster found on endpoint 1 for node ${nodeId}`);
 
-    await onOff.off()
+    await withTimeout(onOff.off(), 5000)
 
     console.log('Toggled lamp off');
 
@@ -260,12 +269,17 @@ export class DevicesController {
 
     const level = node.getClusterClientForDevice(EndpointNumber(1), LevelControl.Complete)
 
-    await level?.moveToLevelWithOnOff({
-      level: brightnessLevel,
-      transitionTime,
-      optionsMask: {},
-      optionsOverride: {}
-    })
+    if (!level) throw new Error(`No LevelControl cluster found on endpoint 1 for node ${nodeId}`)
+
+    await withTimeout(
+      level.moveToLevelWithOnOff({
+        level: brightnessLevel,
+        transitionTime,
+        optionsMask: {},
+        optionsOverride: {}
+      }),
+      5000
+    )
 
     console.log(`Adjusted brightness to ${brightnessLevel} with transition time ${transitionTime}`);
 
@@ -321,24 +335,32 @@ export class DevicesController {
     const node = await controller.getNode(nodeId)
     const color = node.getClusterClientForDevice(EndpointNumber(1), ColorControl.Complete)
 
+    if (!color) throw new Error(`No ColorControl cluster found on endpoint 1 for node ${nodeId}`)
+
     if (hasColorTemp) {
-      await color?.moveToColorTemperature({
-        colorTemperatureMireds,
-        transitionTime,
-        optionsMask: {},
-        optionsOverride: {}
-      })
+      await withTimeout(
+        color.moveToColorTemperature({
+          colorTemperatureMireds,
+          transitionTime,
+          optionsMask: {},
+          optionsOverride: {}
+        }),
+        5000
+      )
     } else {
       const currentHue = hue ?? color?.getCurrentHueAttributeFromCache() ?? 0
       const currentSat = saturation ?? color?.getCurrentSaturationAttributeFromCache() ?? 0
 
-      await color?.moveToHueAndSaturation({
-        hue: currentHue,
-        saturation: currentSat,
-        transitionTime,
-        optionsMask: {},
-        optionsOverride: {}
-      })
+      await withTimeout(
+        color.moveToHueAndSaturation({
+          hue: currentHue,
+          saturation: currentSat,
+          transitionTime,
+          optionsMask: {},
+          optionsOverride: {}
+        }),
+        5000
+      )
     }
 
     res.status(200).json({ success: true, message: `Adjusted color of device with id ${id}` })
