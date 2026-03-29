@@ -61,10 +61,12 @@ export class DevicesController {
           })
 
           jobs.set(jobId, { status: 'completed', nodeId: Number(nodeId) })
+          setTimeout(() => jobs.delete(jobId), 5 * 60 * 1000)
           getLogger().info(`Commissioning completed, nodeId: ${nodeId}`)
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err)
           jobs.set(jobId, { status: 'failed', error: message })
+          setTimeout(() => jobs.delete(jobId), 5 * 60 * 1000)
           getLogger().error(`Commissioning failed: ${message}`)
         } finally {
           commissioningInProgress = false
@@ -88,28 +90,9 @@ export class DevicesController {
   async getAllDevices(_req: Request, res: Response) {
     const controller = await this.matterService.getController()
 
-    const activeSessionInformation = controller.getActiveSessionInformation()
     const commissionedNodes = controller.getCommissionedNodes().map(node => Number(node))
 
-    let sessionInformation = {}
-    if (activeSessionInformation[0] && activeSessionInformation[0].fabric)
-      sessionInformation = {
-        fabricInformation: {
-          label: activeSessionInformation[0].fabric.label,
-          fabricId: Number(activeSessionInformation[0].fabric.fabricId),
-          nodeId: Number(activeSessionInformation[0].fabric.nodeId),
-        },
-        lastInteraction:
-          activeSessionInformation[0].lastInteractionTimestamp ?
-            new Date(activeSessionInformation[0].lastInteractionTimestamp).toISOString() :
-            '-',
-        lastActive:
-          activeSessionInformation[0].lastActiveTimestamp ?
-            new Date(activeSessionInformation[0].lastActiveTimestamp).toISOString() :
-            '-',
-      }
-
-    const devicesStatus = await Promise.all(
+    const devices = await Promise.all(
       commissionedNodes.map(async (commissionedNode) => {
         const nodeId = NodeId(commissionedNode)
         const node = await controller.getNode(nodeId)
@@ -120,8 +103,11 @@ export class DevicesController {
 
         return {
           id: commissionedNode,
+          name: node.basicInformation?.productLabel,
+          reachable: node.isConnected,
           on: onOff?.getOnOffAttributeFromCache(),
           brightness: level?.getCurrentLevelAttributeFromCache(),
+          colorMode: color?.getColorModeAttributeFromCache(), // 0 = HS, 2 = CT
           colorTemperature: color?.getColorTemperatureMiredsAttributeFromCache(),
           hue: color?.getCurrentHueAttributeFromCache(),
           saturation: color?.getCurrentSaturationAttributeFromCache(),
@@ -129,7 +115,7 @@ export class DevicesController {
       })
     )
 
-    res.status(200).json({ ...sessionInformation, devicesStatus })
+    res.status(200).json({ devices })
   }
 
   async getDeviceById(req: Request, res: Response) {
@@ -148,43 +134,25 @@ export class DevicesController {
       return
     }
 
-    const activeSessionInformation = controller.getActiveSessionInformation()
-
-    let sessionInformation = {}
-    if (activeSessionInformation[0] && activeSessionInformation[0].fabric) {
-      sessionInformation = {
-        fabricInformation: {
-          label: activeSessionInformation[0].fabric.label,
-          fabricId: Number(activeSessionInformation[0].fabric.fabricId),
-          nodeId: Number(activeSessionInformation[0].fabric.nodeId),
-        },
-        lastInteraction:
-          activeSessionInformation[0].lastInteractionTimestamp ?
-            new Date(activeSessionInformation[0].lastInteractionTimestamp).toISOString() :
-            '-',
-        lastActive:
-          activeSessionInformation[0].lastActiveTimestamp ?
-            new Date(activeSessionInformation[0].lastActiveTimestamp).toISOString() :
-            '-',
-      }
-    }
-
     const node = await controller.getNode(nodeId)
 
     const onOff = node.getClusterClientForDevice(EndpointNumber(1), OnOff.Complete)
     const level = node.getClusterClientForDevice(EndpointNumber(1), LevelControl.Complete)
     const color = node.getClusterClientForDevice(EndpointNumber(1), ColorControl.Complete)
 
-    const deviceStatus = {
-      id: id,
+    const device = {
+      id,
+      name: node.basicInformation?.productLabel,
+      reachable: node.isConnected,
       on: onOff?.getOnOffAttributeFromCache(),
       brightness: level?.getCurrentLevelAttributeFromCache(),
+      colorMode: color?.getColorModeAttributeFromCache(), // 0 = HS, 2 = CT
       colorTemperature: color?.getColorTemperatureMiredsAttributeFromCache(),
       hue: color?.getCurrentHueAttributeFromCache(),
       saturation: color?.getCurrentSaturationAttributeFromCache(),
     }
 
-    res.status(200).json({ ...sessionInformation, deviceStatus })
+    res.status(200).json({ device })
   }
 
   async toggleDevice(req: Request, res: Response) {

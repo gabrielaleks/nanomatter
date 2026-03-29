@@ -29,8 +29,8 @@ curl -X GET http://localhost:3000/api/devices
 curl -X GET http://localhost:3000/api/devices/commission/123
 
 curl -X POST http://localhost:3000/api/devices/commission \
-     -H "Content-Type: application/json" \
-     -d '{"pairingCode": "0184-573-4538"}'
+  -H "Content-Type: application/json" \
+  -d '{"pairingCode": "1114-693-2258"}'
 
 curl -X POST http://localhost:3000/api/devices/1/toggle
 
@@ -39,12 +39,12 @@ curl -X POST http://localhost:3000/api/devices/1/on
 curl -X POST http://localhost:3000/api/devices/1/off
 
 curl -X POST http://localhost:3000/api/devices/1/brightness \
-     -H "Content-Type: application/json" \
-     -d '{"brightnessLevel": 100, "transitionTime": 1}'
+  -H "Content-Type: application/json" \
+  -d '{"brightnessLevel": 100, "transitionTime": 1}'
 
 curl -X POST http://localhost:3000/api/devices/1/color \
-     -H "Content-Type: application/json" \
-     -d '{"colorTemperatureMireds": 370, "hue": 0, "saturation": 254, "transitionTime": 1}'
+  -H "Content-Type: application/json" \
+  -d '{"colorTemperatureMireds": 370, "hue": 0, "saturation": 254, "transitionTime": 1}'
  
 curl -X DELETE http://localhost:3000/api/devices/1
 */
