@@ -5,23 +5,20 @@ services:
       dockerfile: ./controller/Dockerfile
       target: development
     container_name: nanomatter-controller
-    network_mode: host  # required for mDNS multicast (Matter device discovery)
+    network_mode: host # required for mDNS multicast (Matter device discovery)
     volumes:
       - ./controller:/controller
       - ./controller/matter-storage:/matter
     environment:
       - MATTER_STORAGE_PATH=/matter
 
-  # frontend:
-  #   build:
-  #     context: .
-  #     dockerfile: ./frontend/Dockerfile
-  #     target: development
-  #   container_name: nanomatter-frontend
-  #   ports:
-  #     - '5173:5173'
-  #   volumes:
-  #     - ./frontend:/frontend
-
-# volumes:
-#   matter-storage:
+  frontend:
+    build:
+      context: .
+      dockerfile: ./frontend/Dockerfile
+      target: development
+    container_name: nanomatter-frontend
+    ports:
+      - '5173:5173'
+    volumes:
+      - ./frontend:/frontend

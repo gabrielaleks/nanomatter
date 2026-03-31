@@ -165,10 +165,10 @@ Follow the same GitHub Actions pattern as lista:
 1. [x] Create `NOTES.md` with initial structure
 2. [x] Create `PLAN.md`
 3. [x] Read all Phase 0 resources — log key concepts and resources in NOTES.md
-4. [ ] Run the matter.js controller example locally to understand the API — log discoveries
-5. [ ] Open commissioning window on one lamp via HA and commission it via the matter.js CLI example — verify you can read its state and toggle it — log the exact steps taken
-6. [ ] Build the controller TypeScript service (matter-client + device-service + REST routes)
-7. [ ] Test controller locally on the Pi (not in Docker yet) to avoid mDNS issues during development
+4. [x] Run the matter.js controller example locally to understand the API — log discoveries
+5. [x] Open commissioning window on one lamp via HA and commission it via the matter.js CLI example — verify you can read its state and toggle it — log the exact steps taken
+6. [x] Build the controller TypeScript service (matter-client + device-service + REST routes)
+7. [x] Test controller locally on the Pi (not in Docker yet) to avoid mDNS issues during development
 8. [ ] Build the React frontend
 9. [ ] Dockerize both, wire up Traefik config
 10. [ ] Set up CI/CD pipeline

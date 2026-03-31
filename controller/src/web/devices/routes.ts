@@ -30,7 +30,7 @@ curl -X GET http://localhost:3000/api/devices/commission/123
 
 curl -X POST http://localhost:3000/api/devices/commission \
   -H "Content-Type: application/json" \
-  -d '{"pairingCode": "1114-693-2258"}'
+  -d '{"pairingCode": "0437-574-7038"}'
 
 curl -X POST http://localhost:3000/api/devices/1/toggle
 
