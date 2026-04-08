@@ -1,5 +1,6 @@
 import express, { Request, Response, Express } from 'express'
 import { createRouter as createDevicesRouter } from './web/devices/routes'
+import { createRouter as createRoomsRouter } from './web/rooms/routes'
 import { corsMiddleware } from './middlewares/cors.middleware'
 import { notFoundMiddleware } from './middlewares/notfound.middleware'
 import { getLogger } from './utils/logger'
@@ -24,7 +25,8 @@ export function createServer(matterService: MatterService): Express {
 
   app.use(
     '/api',
-    createDevicesRouter(matterService)
+    createDevicesRouter(matterService),
+    createRoomsRouter(),
   )
 
   app.use(notFoundMiddleware)
