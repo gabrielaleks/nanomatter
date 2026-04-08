@@ -9,6 +9,7 @@ services:
     volumes:
       - ./controller:/controller
       - ./controller/matter-storage:/matter
+      - ./db:/db
     environment:
       - MATTER_STORAGE_PATH=/matter
 

@@ -23,3 +23,6 @@ test-coverage
 
 # Matter config
 matter-storage
+
+# Db
+db/
