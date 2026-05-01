@@ -1,8 +1,8 @@
 import express, { Router } from 'express'
 import { DevicesController } from './DevicesController'
-import { MatterService } from '../../application/services/MatterService'
+import { IMatterService } from '../../domain/IMatterService'
 
-export function createRouter(matterService: MatterService): Router {
+export function createRouter(matterService: IMatterService): Router {
   const router = express.Router()
   const controller = new DevicesController(matterService)
 

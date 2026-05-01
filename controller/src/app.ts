@@ -5,9 +5,9 @@ import { corsMiddleware } from './middlewares/cors.middleware'
 import { notFoundMiddleware } from './middlewares/notfound.middleware'
 import { getLogger } from './utils/logger'
 import { errorMiddleware } from './middlewares/error.middleware'
-import { MatterService } from './application/services/MatterService'
+import { IMatterService } from './domain/IMatterService'
 
-export function createServer(matterService: MatterService): Express {
+export function createServer(matterService: IMatterService): Express {
   const app = express()
 
   app.use(corsMiddleware())

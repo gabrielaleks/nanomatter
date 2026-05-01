@@ -1,47 +1,9 @@
-import { v4 as uuidv4 } from 'uuid'
 import { Request, Response } from 'express'
-import { GeneralCommissioning } from "@matter/main/clusters"
-import { EndpointNumber, ManualPairingCodeCodec, NodeId } from "@matter/main/types"
-import { MatterService } from '../../application/services/MatterService'
-import { getLogger } from '../../utils/logger'
-import { OnOff, LevelControl, ColorControl } from "@matter/main/clusters"
-
-type CommissionJob = {
-  status: 'pending' | 'completed' | 'failed'
-  nodeId?: number
-  error?: string
-}
-
-const ColorMode = {
-  HueSaturation: 'hue-saturation',
-  ColorTemperature: 'color-temperature'
-} as const
-
-type ColorMode = typeof ColorMode[keyof typeof ColorMode]
-
-const jobs = new Map<string, CommissionJob>()
-let commissioningInProgress = false
-
-const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> => {
-  const timeout = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error('Device timed out')), ms)
-  )
-  return Promise.race([promise, timeout])
-}
-
-const getColorModeStringFromAttribute = (attribute: ColorControl.ColorMode): ColorMode => {
-  switch (attribute) {
-    case ColorControl.ColorMode.ColorTemperatureMireds:
-      return ColorMode.ColorTemperature
-    case ColorControl.ColorMode.CurrentHueAndCurrentSaturation:
-      return ColorMode.HueSaturation
-    default:
-      throw new Error(`Invalid attribute: ${attribute}`)
-  }
-}
+import { ManualPairingCodeCodec, ManualPairingData } from "@matter/main/types"
+import { IMatterService } from '../../domain/IMatterService'
 
 export class DevicesController {
-  constructor(private matterService: MatterService) { }
+  constructor(private matterService: IMatterService) { }
 
   async commissionDevice(req: Request, res: Response) {
     const { pairingCode } = req.body
@@ -51,7 +13,7 @@ export class DevicesController {
       return
     }
 
-    let pairingData
+    let pairingData: ManualPairingData
     try {
       pairingData = ManualPairingCodeCodec.decode(pairingCode)
     } catch {
@@ -59,94 +21,38 @@ export class DevicesController {
       return
     }
 
-    if (commissioningInProgress) {
-      res.status(409).json({ error: 'A commissioning is already in progress' })
+    const result = await this.matterService.commissionDevice(pairingData)
+
+    if (result.ok) {
+      res.status(202).json({ jobId: result.data })
       return
     }
 
-    const jobId = uuidv4()
-    jobs.set(jobId, { status: 'pending' })
-    commissioningInProgress = true
-
-      // Run commissioning in background
-      ; (async () => {
-        try {
-          const controller = await this.matterService.getController()
-          const nodeId = await controller.commissionNode({
-            passcode: pairingData.passcode,
-            commissioning: {
-              regulatoryLocation: GeneralCommissioning.RegulatoryLocationType.Indoor,
-              regulatoryCountryCode: "XX",
-            },
-            discovery: {
-              identifierData: {
-                shortDiscriminator: pairingData.shortDiscriminator,
-              },
-            },
-          })
-
-          jobs.set(jobId, { status: 'completed', nodeId: Number(nodeId) })
-          setTimeout(() => jobs.delete(jobId), 5 * 60 * 1000)
-          getLogger().info(`Commissioning completed, nodeId: ${nodeId}`)
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err)
-          jobs.set(jobId, { status: 'failed', error: message })
-          setTimeout(() => jobs.delete(jobId), 5 * 60 * 1000)
-          getLogger().error(`Commissioning failed: ${message}`)
-        } finally {
-          commissioningInProgress = false
-        }
-      })()
-
-    res.status(202).json({ jobId })
+    res.status(500).json({ message: result.message })
   }
 
   async getCommissionStatus(req: Request, res: Response) {
-    const job = jobs.get(req.params.jobId.toString())
+    const result = this.matterService.getCommissionStatus(
+      req.params.jobId.toString()
+    )
 
-    if (!job) {
+    if (!result.data) {
       res.status(404).json({ error: 'Job not found' })
       return
     }
 
-    res.status(200).json(job)
+    res.status(200).json(result.data)
   }
 
   async getAllDevices(_req: Request, res: Response) {
-    const controller = await this.matterService.getController()
+    const result = await this.matterService.getAllDevices()
 
-    const commissionedNodes = controller.getCommissionedNodes().map(node => Number(node))
+    if (result.ok) {
+      res.status(200).json({ devices: result.data })
+      return
+    }
 
-    const devices = await Promise.all(
-      commissionedNodes.map(async (commissionedNode) => {
-        const nodeId = NodeId(commissionedNode)
-        const node = await controller.getNode(nodeId)
-
-        const onOff = node.getClusterClientForDevice(EndpointNumber(1), OnOff.Complete)
-        const level = node.getClusterClientForDevice(EndpointNumber(1), LevelControl.Complete)
-        const color = node.getClusterClientForDevice(EndpointNumber(1), ColorControl.Complete)
-
-        let colorMode: ColorMode = ColorMode.ColorTemperature
-        if (color) {
-          const colorModeAttribute = color.getColorModeAttributeFromCache()
-          colorMode = colorModeAttribute ? getColorModeStringFromAttribute(colorModeAttribute) : colorMode
-        }
-
-        return {
-          id: commissionedNode,
-          name: node.basicInformation?.productLabel,
-          reachable: node.isConnected,
-          on: onOff?.getOnOffAttributeFromCache(),
-          brightness: level?.getCurrentLevelAttributeFromCache(),
-          colorMode,
-          colorTemperature: color?.getColorTemperatureMiredsAttributeFromCache(),
-          hue: color?.getCurrentHueAttributeFromCache(),
-          saturation: color?.getCurrentSaturationAttributeFromCache(),
-        }
-      })
-    )
-
-    res.status(200).json({ devices })
+    res.status(500).json({ message: result.message })
   }
 
   async getDeviceById(req: Request, res: Response) {
@@ -157,39 +63,14 @@ export class DevicesController {
       return
     }
 
-    const controller = await this.matterService.getController()
-    const nodeId = NodeId(id)
+    const result = await this.matterService.getDeviceById(id)
 
-    if (!controller.isNodeCommissioned(nodeId)) {
-      res.status(404).json({ error: `Node ${id} is not commissioned` })
+    if (result.ok) {
+      res.status(200).json({ device: result.data })
       return
     }
 
-    const node = await controller.getNode(nodeId)
-
-    const onOff = node.getClusterClientForDevice(EndpointNumber(1), OnOff.Complete)
-    const level = node.getClusterClientForDevice(EndpointNumber(1), LevelControl.Complete)
-    const color = node.getClusterClientForDevice(EndpointNumber(1), ColorControl.Complete)
-
-    let colorMode: ColorMode = ColorMode.ColorTemperature
-    if (color) {
-      const colorModeAttribute = color.getColorModeAttributeFromCache()
-      colorMode = colorModeAttribute ? getColorModeStringFromAttribute(colorModeAttribute) : colorMode
-    }
-
-    const device = {
-      id,
-      name: node.basicInformation?.productLabel,
-      reachable: node.isConnected,
-      on: onOff?.getOnOffAttributeFromCache(),
-      brightness: level?.getCurrentLevelAttributeFromCache(),
-      colorMode,
-      colorTemperature: color?.getColorTemperatureMiredsAttributeFromCache(),
-      hue: color?.getCurrentHueAttributeFromCache(),
-      saturation: color?.getCurrentSaturationAttributeFromCache(),
-    }
-
-    res.status(200).json({ device })
+    res.status(500).json({ message: result.message })
   }
 
   async toggleDevice(req: Request, res: Response) {
@@ -200,23 +81,14 @@ export class DevicesController {
       return
     }
 
-    const controller = await this.matterService.getController()
-    const nodeId = NodeId(id)
-    const node = await controller.getNode(nodeId)
+    const result = await this.matterService.toggleDevice(id)
 
-    const onOff = node.getClusterClientForDevice(EndpointNumber(1), OnOff.Complete);
-    if (!onOff) throw new Error(`No OnOff cluster found on endpoint 1 for node ${nodeId}`);
-
-    try {
-      const currentState = await onOff.getOnOffAttribute()
-      console.log(`Current state: ${currentState ? "on" : "off"}`);
-      await withTimeout(onOff.toggle(), 5000)
-      console.log(`Toggled lamp ${currentState ? "off" : "on"}`);
+    if (result.ok) {
       res.status(200).json({ success: true, message: `Device with id ${id} was toggled successfully` })
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      res.status(503).json({ error: 'Device is unreachable', detail: message })
+      return
     }
+
+    res.status(500).json({ message: result.message })
   }
 
   async turnDeviceOn(req: Request, res: Response) {
@@ -227,17 +99,14 @@ export class DevicesController {
       return
     }
 
-    const controller = await this.matterService.getController()
-    const nodeId = NodeId(id)
-    const node = await controller.getNode(nodeId)
+    const result = await this.matterService.turnDeviceOn(id)
 
-    const onOff = node.getClusterClientForDevice(EndpointNumber(1), OnOff.Complete);
-    if (!onOff) throw new Error(`No OnOff cluster found on endpoint 1 for node ${nodeId}`);
+    if (result.ok) {
+      res.status(200).json({ success: true, message: `Device with id ${id} was turned on successfully` })
+      return
+    }
 
-    await withTimeout(onOff.on(), 5000)
-    console.log('Toggled lamp on');
-
-    res.status(200).json({ success: true, message: `Device with id ${id} was turned on successfully` })
+    res.status(500).json({ message: result.message })
   }
 
   async turnDeviceOff(req: Request, res: Response) {
@@ -248,19 +117,14 @@ export class DevicesController {
       return
     }
 
-    const controller = await this.matterService.getController()
-    const nodeId = NodeId(id)
-    const node = await controller.getNode(nodeId)
-    node.connect()
+    const result = await this.matterService.turnDeviceOff(id)
 
-    const onOff = node.getClusterClientForDevice(EndpointNumber(1), OnOff.Complete);
-    if (!onOff) throw new Error(`No OnOff cluster found on endpoint 1 for node ${nodeId}`);
+    if (result.ok) {
+      res.status(200).json({ success: true, message: `Device with id ${id} was turned off successfully` })
+      return
+    }
 
-    await withTimeout(onOff.off(), 5000)
-
-    console.log('Toggled lamp off');
-
-    res.status(200).json({ success: true, message: `Device with id ${id} was turned off successfully` })
+    res.status(500).json({ message: result.message })
   }
 
   async adjustDeviceBrightness(req: Request, res: Response) {
@@ -287,33 +151,14 @@ export class DevicesController {
       return
     }
 
-    const controller = await this.matterService.getController()
-    const nodeId = NodeId(id)
+    const result = await this.matterService.adjustDeviceBrightness(id, brightnessLevel, transitionTime)
 
-    if (!controller.isNodeCommissioned(nodeId)) {
-      res.status(404).json({ error: `Node ${id} is not commissioned` })
+    if (result.ok) {
+      res.status(200).json({ success: true, message: `Adjusted brightness of device with id ${id}` })
       return
     }
 
-    const node = await controller.getNode(nodeId)
-
-    const level = node.getClusterClientForDevice(EndpointNumber(1), LevelControl.Complete)
-
-    if (!level) throw new Error(`No LevelControl cluster found on endpoint 1 for node ${nodeId}`)
-
-    await withTimeout(
-      level.moveToLevelWithOnOff({
-        level: brightnessLevel,
-        transitionTime,
-        optionsMask: {},
-        optionsOverride: {}
-      }),
-      5000
-    )
-
-    console.log(`Adjusted brightness to ${brightnessLevel} with transition time ${transitionTime}`);
-
-    res.status(200).json({ success: true, message: `Adjusted brightness of device with id ${id}` })
+    res.status(500).json({ message: result.message })
   }
 
   async adjustDeviceColor(req: Request, res: Response) {
@@ -354,46 +199,20 @@ export class DevicesController {
       return
     }
 
-    const controller = await this.matterService.getController()
-    const nodeId = NodeId(id)
+    const result = await this.matterService.adjustDeviceColor(
+      id,
+      colorTemperatureMireds,
+      hue,
+      saturation,
+      transitionTime
+    )
 
-    if (!controller.isNodeCommissioned(nodeId)) {
-      res.status(404).json({ error: `Node ${id} is not commissioned` })
+    if (result.ok) {
+      res.status(200).json({ success: true, message: `Adjusted color of device with id ${id}` })
       return
     }
 
-    const node = await controller.getNode(nodeId)
-    const color = node.getClusterClientForDevice(EndpointNumber(1), ColorControl.Complete)
-
-    if (!color) throw new Error(`No ColorControl cluster found on endpoint 1 for node ${nodeId}`)
-
-    if (hasColorTemp) {
-      await withTimeout(
-        color.moveToColorTemperature({
-          colorTemperatureMireds,
-          transitionTime,
-          optionsMask: {},
-          optionsOverride: {}
-        }),
-        5000
-      )
-    } else {
-      const currentHue = hue ?? color?.getCurrentHueAttributeFromCache() ?? 0
-      const currentSat = saturation ?? color?.getCurrentSaturationAttributeFromCache() ?? 0
-
-      await withTimeout(
-        color.moveToHueAndSaturation({
-          hue: currentHue,
-          saturation: currentSat,
-          transitionTime,
-          optionsMask: {},
-          optionsOverride: {}
-        }),
-        5000
-      )
-    }
-
-    res.status(200).json({ success: true, message: `Adjusted color of device with id ${id}` })
+    res.status(500).json({ message: result.message })
   }
 
   async decommissionDevice(req: Request, res: Response) {
@@ -404,22 +223,13 @@ export class DevicesController {
       return
     }
 
-    const controller = await this.matterService.getController()
-    const nodeId = NodeId(id)
+    const result = await this.matterService.decommissionDevice(id)
 
-    if (!controller.isNodeCommissioned(nodeId)) {
-      res.status(404).json({ error: `Node ${id} is not commissioned` })
+    if (result.ok) {
+      res.status(200).json({ success: true, message: `Device ${id} removed` })
       return
     }
 
-    const node = await controller.getNode(nodeId)
-    try {
-      await node.decommission()
-    } catch {
-      // Device unreachable, remove locally anyway
-      await controller.removeNode(nodeId, false)
-    }
-
-    res.status(200).json({ success: true, message: `Device ${id} removed` })
+    res.status(500).json({ message: result.message })
   }
 }
