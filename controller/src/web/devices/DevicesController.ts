@@ -12,6 +12,13 @@ type CommissionJob = {
   error?: string
 }
 
+const ColorMode = {
+  HueSaturation: 'hue-saturation',
+  ColorTemperature: 'color-temperature'
+} as const
+
+type ColorMode = typeof ColorMode[keyof typeof ColorMode]
+
 const jobs = new Map<string, CommissionJob>()
 let commissioningInProgress = false
 
@@ -20,6 +27,17 @@ const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> => {
     setTimeout(() => reject(new Error('Device timed out')), ms)
   )
   return Promise.race([promise, timeout])
+}
+
+const getColorModeStringFromAttribute = (attribute: ColorControl.ColorMode): ColorMode => {
+  switch (attribute) {
+    case ColorControl.ColorMode.ColorTemperatureMireds:
+      return ColorMode.ColorTemperature
+    case ColorControl.ColorMode.CurrentHueAndCurrentSaturation:
+      return ColorMode.HueSaturation
+    default:
+      throw new Error(`Invalid attribute: ${attribute}`)
+  }
 }
 
 export class DevicesController {
@@ -108,13 +126,19 @@ export class DevicesController {
         const level = node.getClusterClientForDevice(EndpointNumber(1), LevelControl.Complete)
         const color = node.getClusterClientForDevice(EndpointNumber(1), ColorControl.Complete)
 
+        let colorMode: ColorMode = ColorMode.ColorTemperature
+        if (color) {
+          const colorModeAttribute = color.getColorModeAttributeFromCache()
+          colorMode = colorModeAttribute ? getColorModeStringFromAttribute(colorModeAttribute) : colorMode
+        }
+
         return {
           id: commissionedNode,
           name: node.basicInformation?.productLabel,
           reachable: node.isConnected,
           on: onOff?.getOnOffAttributeFromCache(),
           brightness: level?.getCurrentLevelAttributeFromCache(),
-          colorMode: color?.getColorModeAttributeFromCache(), // 0 = HS, 2 = CT
+          colorMode,
           colorTemperature: color?.getColorTemperatureMiredsAttributeFromCache(),
           hue: color?.getCurrentHueAttributeFromCache(),
           saturation: color?.getCurrentSaturationAttributeFromCache(),
@@ -147,13 +171,19 @@ export class DevicesController {
     const level = node.getClusterClientForDevice(EndpointNumber(1), LevelControl.Complete)
     const color = node.getClusterClientForDevice(EndpointNumber(1), ColorControl.Complete)
 
+    let colorMode: ColorMode = ColorMode.ColorTemperature
+    if (color) {
+      const colorModeAttribute = color.getColorModeAttributeFromCache()
+      colorMode = colorModeAttribute ? getColorModeStringFromAttribute(colorModeAttribute) : colorMode
+    }
+
     const device = {
       id,
       name: node.basicInformation?.productLabel,
       reachable: node.isConnected,
       on: onOff?.getOnOffAttributeFromCache(),
       brightness: level?.getCurrentLevelAttributeFromCache(),
-      colorMode: color?.getColorModeAttributeFromCache(), // 0 = HS, 2 = CT
+      colorMode,
       colorTemperature: color?.getColorTemperatureMiredsAttributeFromCache(),
       hue: color?.getCurrentHueAttributeFromCache(),
       saturation: color?.getCurrentSaturationAttributeFromCache(),
