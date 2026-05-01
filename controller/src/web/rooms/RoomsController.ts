@@ -69,9 +69,17 @@ export class RoomsController {
       return
     }
 
-    const query = `INSERT INTO room_devices (room_id, device_id) VALUES (?, ?)`
+    const roomExistsQuery = `SELECT COUNT(*) AS room_exists FROM rooms WHERE id = ?`
+    const row = this.db.prepare(roomExistsQuery).all(roomId)[0] as { room_exists: number }
+    const roomExists = row.room_exists
 
-    this.db.prepare(query).run(roomId, deviceId)
+    if (!roomExists) {
+      res.status(404).json({ message: `Room ${roomId} does not exist on db` })
+      return
+    }
+
+    const insertDeviceToRoomQuery = `INSERT INTO room_devices (room_id, device_id) VALUES (?, ?)`
+    this.db.prepare(insertDeviceToRoomQuery).run(roomId, deviceId)
 
     res.status(200).json({ message: `Added device ${deviceId} to room ${roomId} successfully` })
   }
