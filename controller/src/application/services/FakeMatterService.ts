@@ -19,7 +19,7 @@ export class FakeMatterService implements IMatterService {
   async commissionDevice(pairingData: ManualPairingData): Promise<ServiceResponse<string>> {
     console.log(`Pairing data: ${JSON.stringify(pairingData)}`)
     const newDeviceId = String(this.devices.length > 0 ? Number(this.devices.at(-1)!.id) + 1 : 1)
-    const colorMode = getRandomNumber(1, 2) % 2 == 0 ? ColorMode.HueSaturation : ColorMode.HueSaturation
+    const colorMode = getRandomNumber(1, 2) % 2 == 0 ? ColorMode.HueSaturation : ColorMode.ColorTemperature
 
     this.devices.push({
       id: newDeviceId,
