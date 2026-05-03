@@ -1,10 +1,16 @@
 import express, { Router } from 'express'
 import { DevicesController } from './DevicesController'
 import { IMatterService } from '../../domain/IMatterService'
+import Database from 'better-sqlite3'
+import { SqlRepository } from '../../infrastructure/SqlRepository'
 
-export function createRouter(matterService: IMatterService): Router {
+export function createRouter(
+  matterService: IMatterService,
+  db: Database.Database
+): Router {
   const router = express.Router()
-  const controller = new DevicesController(matterService)
+  const sqlRepository = new SqlRepository(db)
+  const controller = new DevicesController(matterService, sqlRepository)
 
   router.get('/devices', controller.getAllDevices.bind(controller))
   router.get('/devices/:id', controller.getDeviceById.bind(controller))

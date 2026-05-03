@@ -19,7 +19,6 @@ export type Device = {
   saturation: number
 }
 
-
 export const ColorMode = {
   HueSaturation: 'hue-saturation',
   ColorTemperature: 'color-temperature'
@@ -29,7 +28,10 @@ export type ColorMode = typeof ColorMode[keyof typeof ColorMode]
 
 
 export interface IMatterService {
-  commissionDevice(pairingData: ManualPairingData): Promise<ServiceResponse<string>>
+  commissionDevice(
+    pairingData: ManualPairingData,
+    onComplete: (deviceId: string) => Promise<void>
+  ): Promise<ServiceResponse<string>>
   getCommissionStatus(jobId: string): ServiceResponse<CommissionJob | undefined>
   getAllDevices(): Promise<ServiceResponse<Device[]>>
   getDeviceById(id: string): Promise<ServiceResponse<Device>>

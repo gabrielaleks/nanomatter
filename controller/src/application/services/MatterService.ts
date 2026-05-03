@@ -50,7 +50,10 @@ export class MatterService implements IMatterService {
     return this.controller
   }
 
-  async commissionDevice(pairingData: ManualPairingData): Promise<ServiceResponse<string>> {
+  async commissionDevice(
+    pairingData: ManualPairingData,
+    onComplete: (deviceId: string) => Promise<void>
+  ): Promise<ServiceResponse<string>> {
     if (commissioningInProgress) {
       return {
         ok: false,
@@ -82,6 +85,7 @@ export class MatterService implements IMatterService {
           jobs.set(jobId, { status: 'completed', nodeId: Number(nodeId) })
           setTimeout(() => jobs.delete(jobId), 5 * 60 * 1000)
           getLogger().info(`Commissioning completed, nodeId: ${nodeId}`)
+          await onComplete(nodeId.toString())
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err)
           jobs.set(jobId, { status: 'failed', error: message })

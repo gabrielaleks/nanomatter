@@ -16,7 +16,10 @@ export class FakeMatterService implements IMatterService {
     console.log('Fake Matter controller')
   }
 
-  async commissionDevice(pairingData: ManualPairingData): Promise<ServiceResponse<string>> {
+  async commissionDevice(
+    pairingData: ManualPairingData,
+    onComplete: (deviceId: string) => Promise<void>
+  ): Promise<ServiceResponse<string>> {
     console.log(`Pairing data: ${JSON.stringify(pairingData)}`)
     const newDeviceId = String(this.devices.length > 0 ? Number(this.devices.at(-1)!.id) + 1 : 1)
     const colorMode = getRandomNumber(1, 2) % 2 == 0 ? ColorMode.HueSaturation : ColorMode.ColorTemperature
@@ -32,6 +35,8 @@ export class FakeMatterService implements IMatterService {
       hue: getRandomNumber(0, 254),
       saturation: getRandomNumber(0, 254)
     })
+
+    await onComplete(newDeviceId)
 
     return {
       ok: true,

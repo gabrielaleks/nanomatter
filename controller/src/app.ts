@@ -6,8 +6,12 @@ import { notFoundMiddleware } from './middlewares/notfound.middleware'
 import { getLogger } from './utils/logger'
 import { errorMiddleware } from './middlewares/error.middleware'
 import { IMatterService } from './domain/IMatterService'
+import Database from 'better-sqlite3'
 
-export function createServer(matterService: IMatterService): Express {
+export function createServer(
+  matterService: IMatterService,
+  db: Database.Database
+): Express {
   const app = express()
 
   app.use(corsMiddleware())
@@ -25,8 +29,8 @@ export function createServer(matterService: IMatterService): Express {
 
   app.use(
     '/api',
-    createDevicesRouter(matterService),
-    createRoomsRouter(),
+    createDevicesRouter(matterService, db),
+    createRoomsRouter(matterService, db),
   )
 
   app.use(notFoundMiddleware)

@@ -1,27 +1,45 @@
 import { Request, Response } from 'express'
-import Database from 'better-sqlite3'
+import { IRepository } from '../../domain/IRepository'
+import { IMatterService } from '../../domain/IMatterService'
 
 export class RoomsController {
-  constructor(private db: Database.Database) { }
+  constructor(
+    private matterService: IMatterService,
+    private repository: IRepository
+  ) { }
 
   async getAllRooms(_req: Request, res: Response) {
-    const query = `SELECT
-        r.id,
-        r.name,
-        json_group_array(rd.device_id) AS devices
-      FROM rooms r
-      LEFT JOIN room_devices rd ON r.id = rd.room_id
-      GROUP BY r.id
-    `
+    const rooms = await this.repository.getRooms()
+    const dbDevices = await this.repository.getDevices()
+    const matterDevices = await this.matterService.getAllDevices()
 
-    const rows = this.db.prepare(query).all() as { id: number; name: string; devices: string }[]
-    const rooms = rows.map(row => ({
-      id: row.id,
-      name: row.name,
-      devices: JSON.parse(row.devices).filter((d: number | null) => d !== null)
+    const assignedIds = new Set(rooms.flatMap(room => room.devices.map(d => String(d.id))))
+
+    const enrichedRooms = rooms.map(room => ({
+      ...room,
+      devices: room.devices.map(device => {
+        const matterDevice = matterDevices.data?.find(d => d.id === String(device.id))
+        return {
+          ...matterDevice,
+          id: device.id,
+          name: device.name,
+          factoryName: matterDevice?.name,
+        }
+      })
     }))
 
-    res.status(200).json({ rooms })
+    const unassigned = (matterDevices.data ?? [])
+      .filter(d => !assignedIds.has(d.id))
+      .map(d => {
+        const dbDevice = dbDevices.find(db => String(db.id) === d.id)
+        return {
+          ...d,
+          name: dbDevice!.name,
+          factoryName: d.name,
+        }
+      })
+
+    res.status(200).json({ rooms: enrichedRooms, unassigned })
   }
 
   async addRoom(req: Request, res: Response) {
@@ -32,9 +50,7 @@ export class RoomsController {
       return
     }
 
-    const query = `INSERT INTO rooms (name) VALUES (?)`
-
-    this.db.prepare(query).run(name)
+    this.repository.createRoom({ name })
 
     res.status(200).json({ message: `Room ${name} was added successfully` })
   }
@@ -47,14 +63,12 @@ export class RoomsController {
       return
     }
 
-    const query = `DELETE FROM rooms WHERE id = ?`
-
-    this.db.prepare(query).run(roomId)
+    await this.repository.deleteRoom(roomId)
 
     res.status(200).json({ message: `Room with id ${roomId} was deleted successfully` })
   }
 
-  async addDeviceToRoom(req: Request, res: Response) {
+  async moveDeviceToRoom(req: Request, res: Response) {
     const roomId = req.params.roomId
 
     if (!roomId || typeof roomId !== 'string') {
@@ -69,40 +83,20 @@ export class RoomsController {
       return
     }
 
-    const roomExistsQuery = `SELECT COUNT(*) AS room_exists FROM rooms WHERE id = ?`
-    const row = this.db.prepare(roomExistsQuery).all(roomId)[0] as { room_exists: number }
-    const roomExists = row.room_exists
-
+    const roomExists = await this.repository.getRoomById(roomId)
     if (!roomExists) {
-      res.status(404).json({ message: `Room ${roomId} does not exist on db` })
+      res.status(404).json({ message: `Room with id ${roomId} does not exist` })
       return
     }
 
-    const insertDeviceToRoomQuery = `INSERT INTO room_devices (room_id, device_id) VALUES (?, ?)`
-    this.db.prepare(insertDeviceToRoomQuery).run(roomId, deviceId)
-
-    res.status(200).json({ message: `Added device ${deviceId} to room ${roomId} successfully` })
-  }
-
-  async removeDeviceFromRoom(req: Request, res: Response) {
-    const roomId = req.params.roomId
-
-    if (!roomId || typeof roomId !== 'string') {
-      res.status(400).json({ error: 'roomId is required' })
+    const deviceExists = await this.repository.getDeviceById(deviceId)
+    if (!deviceExists) {
+      res.status(404).json({ message: `Device with id ${deviceId} does not exist` })
       return
     }
 
-    const deviceId = req.params.deviceId
+    await this.repository.moveDeviceToRoom(deviceId, roomId)
 
-    if (!deviceId || typeof deviceId !== 'string') {
-      res.status(400).json({ error: 'deviceId is required' })
-      return
-    }
-
-    const query = `DELETE FROM room_devices WHERE room_id = ? AND device_id = ?`
-
-    this.db.prepare(query).run(roomId, deviceId)
-
-    res.status(200).json({ message: `Removed device ${deviceId} from room ${roomId} successfully` })
+    res.status(200).json({ message: `Moved device ${deviceId} to room ${roomId} successfully` })
   }
 }

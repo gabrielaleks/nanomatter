@@ -6,7 +6,7 @@ if (process.env.ENVIRONMENT?.toLowerCase() === 'test') {
 }
 
 import { createServer } from './app'
-import { initDb } from './db/db'
+import { getDb, initDb } from './db/db'
 import { FakeMatterService } from './application/services/FakeMatterService'
 import { MatterService } from './application/services/MatterService'
 
@@ -14,8 +14,12 @@ const dbPath = process.env.DB_PATH ?? '/db/nanomatter.db'
 initDb(dbPath)
 const environment = process.env.ENVIRONMENT?.toLowerCase()
 
+// Dependencies
 const matterService = environment === 'test' ? new FakeMatterService() : new MatterService()
-const app = createServer(matterService)
+const db = getDb()
+// ---
+
+const app = createServer(matterService, db)
 const port = process.env.PORT
 
 matterService.getController().then(() => {

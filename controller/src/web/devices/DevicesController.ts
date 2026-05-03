@@ -1,15 +1,24 @@
 import { Request, Response } from 'express'
 import { ManualPairingCodeCodec, ManualPairingData } from "@matter/main/types"
 import { IMatterService } from '../../domain/IMatterService'
+import { IRepository } from '../../domain/IRepository'
 
 export class DevicesController {
-  constructor(private matterService: IMatterService) { }
+  constructor(
+    private matterService: IMatterService,
+    private repository: IRepository
+  ) { }
 
   async commissionDevice(req: Request, res: Response) {
-    const { pairingCode } = req.body
+    const { pairingCode, deviceName } = req.body
 
     if (!pairingCode || typeof pairingCode !== 'string') {
       res.status(400).json({ error: 'pairingCode is required' })
+      return
+    }
+
+    if (!deviceName || typeof deviceName !== 'string') {
+      res.status(400).json({ error: 'deviceName is required' })
       return
     }
 
@@ -21,7 +30,12 @@ export class DevicesController {
       return
     }
 
-    const result = await this.matterService.commissionDevice(pairingData)
+    const result = await this.matterService.commissionDevice(
+      pairingData,
+      async (deviceId) => {
+        await this.repository.createDevice(deviceId, deviceName)
+      }
+    )
 
     if (result.ok) {
       res.status(202).json({ jobId: result.data })
@@ -224,6 +238,7 @@ export class DevicesController {
     }
 
     const result = await this.matterService.decommissionDevice(id)
+    await this.repository.removeDevice(id)
 
     if (result.ok) {
       res.status(200).json({ success: true, message: `Device ${id} removed` })
