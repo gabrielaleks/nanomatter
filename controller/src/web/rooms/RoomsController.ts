@@ -34,12 +34,13 @@ export class RoomsController {
         const dbDevice = dbDevices.find(db => String(db.id) === d.id)
         return {
           ...d,
+          id: dbDevice!.id,
           name: dbDevice!.name,
           factoryName: d.name,
         }
       })
 
-    res.status(200).json({ rooms: enrichedRooms, unassigned })
+    res.status(200).json({ assigned: enrichedRooms, unassigned })
   }
 
   async addRoom(req: Request, res: Response) {

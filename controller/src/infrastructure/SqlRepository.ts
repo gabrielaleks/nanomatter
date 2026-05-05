@@ -47,8 +47,8 @@ export class SqlRepository implements IRepository {
       JOIN room_devices rd ON rd.device_id = d.id
     `
 
-    const roomsRows = this.db.prepare(selectRoomsQuery).all() as { id: string; name: string }[]
-    const devicesRows = this.db.prepare(selectDevicesQuery).all() as { id: string; name: string; room_id: string }[]
+    const roomsRows = this.db.prepare(selectRoomsQuery).all() as { id: number; name: string }[]
+    const devicesRows = this.db.prepare(selectDevicesQuery).all() as { id: number; name: string; room_id: number }[]
 
     const rooms = roomsRows.map(row => ({
       id: row.id,

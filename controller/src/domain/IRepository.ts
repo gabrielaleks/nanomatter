@@ -1,10 +1,10 @@
 export type Device = {
-  id: string,
+  id: number,
   name: string,
 }
 
 export type Room = {
-  id: string,
+  id: number,
   name: string,
   devices: Device[]
 }
