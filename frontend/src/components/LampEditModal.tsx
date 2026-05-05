@@ -1,11 +1,11 @@
-// import { useMutation, useQueryClient } from '@tanstack/react-query'
-// import { moveDeviceToRoom } from '../api/devices.api'
 import type { Device } from '../types/device'
 import { Modal, Box, Typography, Stack } from '@mui/material'
 import RedoIcon from '@mui/icons-material/Redo'
 import CloseIcon from '@mui/icons-material/Close'
 import Delete from '@mui/icons-material/Delete'
 import Slider from '@mui/material/Slider'
+import { Wheel } from '@uiw/react-color'
+import { useState } from 'react'
 
 type Props = {
 	device: Device
@@ -15,20 +15,19 @@ type Props = {
 }
 
 export function LampEditModal({ device, roomName, open, onClose }: Props) {
-	// const queryClient = useQueryClient()
-
-	// const { mutate: move } = useMutation({
-	// 	mutationFn: (roomId: number, deviceId: number) =>
-	// 		moveDeviceToRoom(roomId, deviceId),
-	// 	onSuccess: () => queryClient.invalidateQueries({ queryKey: ['rooms'] }),
-	// })
+	const [color, setColor] = useState({
+		h: device.hue!,
+		s: (device.saturation! / 255) * 100,
+		v: 90,
+		a: 1,
+	})
 
 	const style = {
 		position: 'absolute',
 		top: '50%',
 		left: '50%',
 		transform: 'translate(-50%, -50%)',
-		width: 400,
+		width: 470,
 		bgcolor: 'background.paper',
 		border: '1px solid #000',
 		'border-color': 'white',
@@ -82,8 +81,8 @@ export function LampEditModal({ device, roomName, open, onClose }: Props) {
 						<Typography variant="caption">Brightness</Typography>
 					</div>
 
-					<div className="flex flex-col items-center">
-						{/* rgb wheel */}
+					<div className="flex flex-col items-center gap-3">
+						<Wheel color={color} onChange={(c) => setColor(c.hsva)} />
 						<Typography variant="caption">Color</Typography>
 					</div>
 
