@@ -1,7 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { ThemeProvider, CssBaseline } from '@mui/material'
 import { theme } from './theme'
-import DevicesPage from './pages/DevicesPage'
+import RoomsPage from './pages/RoomsPage'
 
 export function App() {
 	return (
@@ -9,7 +9,7 @@ export function App() {
 			<CssBaseline />
 			<BrowserRouter>
 				<Routes>
-					<Route path="/" element={<DevicesPage />}></Route>
+					<Route path="/" element={<RoomsPage />}></Route>
 				</Routes>
 			</BrowserRouter>
 		</ThemeProvider>
