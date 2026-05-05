@@ -120,9 +120,9 @@ export class FakeMatterService implements IMatterService {
     const device = this.devices.find(device => device.id === id)
 
     if (device) {
-      device.colorTemperature = colorTemperatureMireds
-      device.hue = hue
-      device.saturation = saturation
+      if (colorTemperatureMireds !== undefined) device.colorTemperature = colorTemperatureMireds
+      if (hue !== undefined) device.hue = hue
+      if (saturation !== undefined) device.saturation = saturation
 
       const message = `Adjusted color temperature of device ${id} to ${colorTemperatureMireds}, ` +
         `hue to ${hue}, ` +
