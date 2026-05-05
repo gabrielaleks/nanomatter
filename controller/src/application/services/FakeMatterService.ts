@@ -31,7 +31,7 @@ export class FakeMatterService implements IMatterService {
       on: true,
       brightness: getRandomNumber(0, 254),
       colorMode,
-      colorTemperature: getRandomNumber(0, 1000),
+      colorTemperature: getRandomNumber(150, 500),
       hue: getRandomNumber(0, 254),
       saturation: getRandomNumber(0, 254)
     })
