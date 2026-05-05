@@ -21,4 +21,7 @@ export const theme = createTheme({
       secondary: '#6272a4',
     },
   },
+  typography: {
+    fontFamily: "'Fira Mono', monospace"
+  }
 })
