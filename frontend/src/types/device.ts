@@ -1,22 +1,12 @@
-type BaseDevice = {
+export type Device = {
   id: number
   name: string
   factoryName: string
   reachable: boolean
   on: boolean
   brightness: number
+  colorMode: 'hue-saturation' | 'color-temperature'
+  hue: number
+  saturation: number
+  colorTemperature: number
 }
-
-export type Device =
-  | (BaseDevice & {
-    colorMode: 'hue-saturation'
-    hue: number
-    saturation: number
-    colorTemperature?: never
-  })
-  | (BaseDevice & {
-    colorMode: 'color-temperature'
-    colorTemperature: number
-    hue?: never
-    saturation?: never
-  })
