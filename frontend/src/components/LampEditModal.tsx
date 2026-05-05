@@ -4,8 +4,15 @@ import RedoIcon from '@mui/icons-material/Redo'
 import CloseIcon from '@mui/icons-material/Close'
 import Delete from '@mui/icons-material/Delete'
 import Slider from '@mui/material/Slider'
-import { Wheel } from '@uiw/react-color'
-import { useState } from 'react'
+import { Wheel, type ColorResult } from '@uiw/react-color'
+import { useState, useRef } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+	updateBrightness,
+	updateColorTemperature,
+	updateHueAndSaturation,
+} from '../api/devices.api'
+import debounce from 'lodash/debounce'
 
 type Props = {
 	device: Device
@@ -15,9 +22,11 @@ type Props = {
 }
 
 export function LampEditModal({ device, roomName, open, onClose }: Props) {
+	const queryClient = useQueryClient()
+
 	const [color, setColor] = useState({
-		h: device.hue!,
-		s: (device.saturation! / 255) * 100,
+		h: Math.round((device.hue! / 254) * 360),
+		s: (device.saturation! / 254) * 100,
 		v: 90,
 		a: 1,
 	})
@@ -36,6 +45,41 @@ export function LampEditModal({ device, roomName, open, onClose }: Props) {
 		outline: 'none',
 	}
 
+	const { mutate: handleBrightnessUpdate } = useMutation({
+		mutationFn: ({ id, brightness }: { id: number; brightness: number }) =>
+			updateBrightness(id, brightness),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: ['rooms'] }),
+	})
+
+	const { mutate: handleColorTemperatureUpdate } = useMutation({
+		mutationFn: ({
+			id,
+			colorTemperature,
+		}: {
+			id: number
+			colorTemperature: number
+		}) => updateColorTemperature(id, colorTemperature),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: ['rooms'] }),
+	})
+
+	const { mutate: handleHueAndSaturationUpdate } = useMutation({
+		mutationFn: ({ id, color }: { id: number; color: ColorResult }) =>
+			updateHueAndSaturation(
+				id,
+				Math.round((color.hsva.h / 360) * 254),
+				Math.round((color.hsva.s / 100) * 254),
+			),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['rooms'] })
+		},
+	})
+
+	const debouncedUpdate = useRef(
+		debounce((value: ColorResult) => {
+			handleHueAndSaturationUpdate({ id: device.id, color: value })
+		}, 300),
+	).current
+
 	return (
 		<Modal open={open} onClose={onClose}>
 			<Box className="flex flex-col items-center gap-1" sx={style}>
@@ -53,6 +97,12 @@ export function LampEditModal({ device, roomName, open, onClose }: Props) {
 					<div className="flex flex-col items-center gap-3">
 						<Stack sx={{ height: 200 }}>
 							<Slider
+								onChangeCommitted={(_e, value) =>
+									handleBrightnessUpdate({
+										id: device.id,
+										brightness: value as number,
+									})
+								}
 								orientation="vertical"
 								size="medium"
 								defaultValue={device.brightness}
@@ -82,13 +132,29 @@ export function LampEditModal({ device, roomName, open, onClose }: Props) {
 					</div>
 
 					<div className="flex flex-col items-center gap-3">
-						<Wheel color={color} onChange={(c) => setColor(c.hsva)} />
+						<Wheel
+							color={color}
+							onChange={(value) => {
+								setColor(value.hsva)
+								debouncedUpdate(value)
+								// handleHueAndSaturationUpdate({
+								// 	id: device.id,
+								// 	color: value,
+								// })
+							}}
+						/>
 						<Typography variant="caption">Color</Typography>
 					</div>
 
 					<div className="flex flex-col items-center gap-3">
 						<Stack sx={{ height: 200 }}>
 							<Slider
+								onChangeCommitted={(_e, value) =>
+									handleColorTemperatureUpdate({
+										id: device.id,
+										colorTemperature: value as number,
+									})
+								}
 								orientation="vertical"
 								size="medium"
 								defaultValue={device.colorTemperature}
