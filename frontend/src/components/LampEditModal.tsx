@@ -137,10 +137,6 @@ export function LampEditModal({ device, roomName, open, onClose }: Props) {
 							onChange={(value) => {
 								setColor(value.hsva)
 								debouncedUpdate(value)
-								// handleHueAndSaturationUpdate({
-								// 	id: device.id,
-								// 	color: value,
-								// })
 							}}
 						/>
 						<Typography variant="caption">Color</Typography>

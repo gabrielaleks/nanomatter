@@ -4,6 +4,16 @@ const client = axios.create({ baseURL: '/api' })
 
 const transitionTime = 1
 
+export async function commissionDevice(
+  pairingCode: string,
+  deviceName: string,
+): Promise<void> {
+  await client.post(`/devices/commission`, {
+    pairingCode,
+    deviceName
+  })
+}
+
 export async function toggleDevice(id: number): Promise<void> {
   await client.post(`/devices/${id}/toggle`)
 }
