@@ -51,15 +51,6 @@ export function RoomCard({ room, isEditable = true }: Props) {
 									onClick={() => setSelectedDevice(device)}
 									className="cursor-pointer hover:scale-105"
 								/>
-								{selectedDevice?.id === device.id && (
-									<LampEditModal
-										open={true}
-										onClose={() => setSelectedDevice(null)}
-										device={selectedDevice}
-										roomId={room.id}
-										roomName={room.name}
-									/>
-								)}
 							</div>
 						</div>
 					))
@@ -67,6 +58,15 @@ export function RoomCard({ room, isEditable = true }: Props) {
 					<Typography className="text-sm text-center">no devices</Typography>
 				)}
 			</div>
+			{selectedDevice && (
+				<LampEditModal
+					open={true}
+					onClose={() => setSelectedDevice(null)}
+					device={selectedDevice}
+					roomId={room.id}
+					roomName={room.name}
+				/>
+			)}
 		</div>
 	)
 }
