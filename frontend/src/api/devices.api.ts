@@ -54,5 +54,5 @@ export async function moveDeviceToRoom(
   roomId: number,
   deviceId: number
 ): Promise<void> {
-  await client.post(`/rooms/${roomId}/devices/${deviceId}`)
+  await client.put(`/rooms/${roomId}/devices/${deviceId}`)
 }

@@ -1,6 +1,15 @@
 import type { Device } from '../types/device'
-import { Modal, Box, Typography, Stack } from '@mui/material'
-import RedoIcon from '@mui/icons-material/Redo'
+import {
+	Modal,
+	Box,
+	Typography,
+	Stack,
+	FormControl,
+	MenuItem,
+	Select,
+	InputLabel,
+	type SelectChangeEvent,
+} from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import Delete from '@mui/icons-material/Delete'
 import Slider from '@mui/material/Slider'
@@ -8,20 +17,33 @@ import { Wheel, type ColorResult } from '@uiw/react-color'
 import { useState, useRef } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
+	moveDeviceToRoom,
 	updateBrightness,
 	updateColorTemperature,
 	updateHueAndSaturation,
 } from '../api/devices.api'
 import debounce from 'lodash/debounce'
+import { useRooms } from '../hooks/useRooms'
 
 type Props = {
 	device: Device
 	roomName: string
+	roomId: number
 	open: boolean
 	onClose: () => void
 }
 
-export function LampEditModal({ device, roomName, open, onClose }: Props) {
+export function LampEditModal({
+	device,
+	roomName,
+	roomId,
+	open,
+	onClose,
+}: Props) {
+	const { data: rooms } = useRooms()
+	const [selectedRoomId, setSelectedRoomId] = useState(roomId)
+	const currentRoomName = rooms?.assigned.find(r => r.id === selectedRoomId)?.name ?? roomName
+
 	const queryClient = useQueryClient()
 
 	const [color, setColor] = useState({
@@ -80,6 +102,18 @@ export function LampEditModal({ device, roomName, open, onClose }: Props) {
 		}, 300),
 	).current
 
+	const { mutate: handleMoveToRoom } = useMutation({
+		mutationFn: ({ roomId, deviceId }: { roomId: number; deviceId: number }) =>
+			moveDeviceToRoom(roomId, deviceId),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: ['rooms'] }),
+	})
+
+	const handleChangeRoom = (event: SelectChangeEvent<number>) => {
+		const newRoomId = Number(event.target.value)
+		setSelectedRoomId(newRoomId)
+		handleMoveToRoom({ roomId: newRoomId, deviceId: device.id })
+	}
+
 	return (
 		<Modal open={open} onClose={onClose}>
 			<Box className="flex flex-col items-center gap-1" sx={style}>
@@ -91,7 +125,7 @@ export function LampEditModal({ device, roomName, open, onClose }: Props) {
 				<Typography variant="h5" className="underline">
 					{device.name}
 				</Typography>
-				<Typography variant="body2">{roomName}</Typography>
+				<Typography variant="body2">{currentRoomName}</Typography>
 				<Typography variant="body2">model: {device.factoryName}</Typography>
 				<div className="flex gap-6 items-end mt-5 mb-3">
 					<div className="flex flex-col items-center gap-3">
@@ -180,8 +214,22 @@ export function LampEditModal({ device, roomName, open, onClose }: Props) {
 					</div>
 				</div>
 				<div className="flex justify-between items-center gap-2 cursor-pointer hover:scale-105">
-					<Typography>change room</Typography>
-					<RedoIcon fontSize="small"></RedoIcon>
+					<FormControl sx={{ m: 1, width: 200 }}>
+						<InputLabel id="room-select-label">room</InputLabel>
+						<Select
+							labelId="room-select-label"
+							id="room-select"
+							value={selectedRoomId}
+							label="room"
+							onChange={handleChangeRoom}
+						>
+							{rooms && rooms.assigned.length > 0
+								? rooms.assigned!.map((room) => (
+										<MenuItem value={room.id}>{room.name}</MenuItem>
+									))
+								: null}
+						</Select>
+					</FormControl>
 				</div>
 				<div className="flex justify-between items-center gap-2 cursor-pointer hover:scale-105">
 					<Typography>decommission</Typography>
