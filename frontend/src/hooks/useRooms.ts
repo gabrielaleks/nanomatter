@@ -5,5 +5,6 @@ export function useRooms() {
   return useQuery({
     queryKey: ['rooms'],
     queryFn: fetchRooms,
+    staleTime: 1000 * 60 * 5,
   })
 }
