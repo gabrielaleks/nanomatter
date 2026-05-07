@@ -168,7 +168,7 @@ export function LampEditModal({
 				{editingName ? (
 					<div className="flex flex-row justify-center items-center gap-1">
 						<TextField
-							label="room name"
+							label="device name"
 							variant="standard"
 							value={newName}
 							onChange={(e) => setNewName(e.target.value)}
