@@ -7,11 +7,19 @@ const transitionTime = 1
 export async function commissionDevice(
   pairingCode: string,
   deviceName: string,
-): Promise<void> {
-  await client.post(`/devices/commission`, {
+): Promise<{ jobId: string }> {
+  const res = await client.post(`/devices/commission`, {
     pairingCode,
     deviceName
   })
+  return res.data
+}
+
+export async function getCommissionStatus(
+  jobId: string,
+): Promise<{ status: 'pending' | 'completed' | 'failed' }> {
+  const res = await client.get(`/devices/${jobId}/commission`)
+  return res.data
 }
 
 export async function toggleDevice(id: number): Promise<void> {

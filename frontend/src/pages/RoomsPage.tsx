@@ -12,18 +12,44 @@ import {
 	Button,
 } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import { useState } from 'react'
-import { commissionDevice } from '../api/devices.api'
+import { useState, useEffect } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { commissionDevice, getCommissionStatus } from '../api/devices.api'
 
 export default function DevicesPage() {
 	const { data: rooms, isLoading: isLoadingRooms, error } = useRooms()
 	const [pairingCode, setPairingCode] = useState('')
 	const [deviceName, setDeviceName] = useState('')
+	const [commissionJobId, setCommissionJobId] = useState<string | null>(null)
+	const queryClient = useQueryClient()
 
-	const handleCommissioning = (pairingCode: string, deviceName: string) => {
+	const { data: commissionStatus } = useQuery({
+		queryKey: ['commission-status', commissionJobId],
+		queryFn: () => getCommissionStatus(commissionJobId!),
+		enabled: !!commissionJobId,
+		refetchInterval: (query) =>
+			query.state.data?.status === 'pending' ? 2000 : false,
+	})
+
+	useEffect(() => {
+		if (commissionStatus?.status === 'completed') {
+			queryClient.invalidateQueries({ queryKey: ['rooms'] })
+		}
+	}, [commissionStatus?.status, queryClient])
+
+	const isCommissioning =
+		!!commissionJobId &&
+		(!commissionStatus || commissionStatus.status === 'pending')
+	const commissionFailed = commissionStatus?.status === 'failed'
+
+	const handleCommissioning = async (
+		pairingCode: string,
+		deviceName: string,
+	) => {
 		if (!pairingCode || pairingCode.trim().length === 0) return
 		if (!deviceName || deviceName.trim().length === 0) return
-		commissionDevice(pairingCode, deviceName)
+		const { jobId } = await commissionDevice(pairingCode, deviceName)
+		setCommissionJobId(jobId)
 	}
 
 	return (
@@ -102,10 +128,15 @@ export default function DevicesPage() {
 											variant="contained"
 											sx={{ maxWidth: 200, mx: 'auto' }}
 											color="primary"
-											disabled={!pairingCode || !deviceName}
+											disabled={!pairingCode || !deviceName || isCommissioning}
 										>
-											commission
+											{isCommissioning ? 'commissioning...' : 'commission'}
 										</Button>
+										{commissionFailed && (
+											<Alert severity="error" variant="outlined">
+												commissioning failed
+											</Alert>
+										)}
 									</div>
 								</form>
 							</AccordionDetails>
