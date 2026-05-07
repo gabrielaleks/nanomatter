@@ -58,6 +58,15 @@ export async function updateColorTemperature(
   })
 }
 
+export async function updateDevice(
+  id: number,
+  name?: string
+): Promise<void> {
+  await client.patch(`/devices/${id}`, {
+    name,
+  })
+}
+
 export async function moveDeviceToRoom(
   roomId: number,
   deviceId: number

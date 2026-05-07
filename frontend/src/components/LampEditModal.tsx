@@ -10,6 +10,7 @@ import {
 	InputLabel,
 	Button,
 	type SelectChangeEvent,
+	TextField,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import Delete from '@mui/icons-material/Delete'
@@ -23,10 +24,13 @@ import {
 	moveDeviceToRoom,
 	updateBrightness,
 	updateColorTemperature,
+	updateDevice,
 	updateHueAndSaturation,
 } from '../api/devices.api'
 import debounce from 'lodash/debounce'
 import { useRooms } from '../hooks/useRooms'
+import ClearIcon from '@mui/icons-material/Clear'
+import CheckIcon from '@mui/icons-material/Check'
 
 type Props = {
 	device: Device
@@ -46,6 +50,8 @@ export function LampEditModal({
 	const { data: rooms } = useRooms()
 	const [selectedRoomId, setSelectedRoomId] = useState(roomId)
 	const [confirming, setConfirming] = useState(false)
+	const [editingName, setEditingName] = useState<boolean>(false)
+	const [newName, setNewName] = useState(device.name)
 
 	const currentRoomName =
 		rooms?.assigned.find((r) => r.id === selectedRoomId)?.name ?? roomName
@@ -58,6 +64,14 @@ export function LampEditModal({
 		s: (device.saturation! / 254) * 100,
 		v: 90,
 		a: 1,
+	})
+
+	const { mutate: updateDeviceName } = useMutation({
+		mutationFn: (name: string) => updateDevice(device.id, name),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['rooms'] })
+			setEditingName(false)
+		},
 	})
 
 	const style = {
@@ -141,9 +155,45 @@ export function LampEditModal({
 					onClick={() => onClose()}
 					sx={{ fontSize: '1.8em' }}
 				/>
-				<Typography variant="h5" className="underline">
-					{device.name}
-				</Typography>
+				{editingName ? null : (
+					<Typography
+						variant="h5"
+						className="underline cursor-pointer hover:scale-102"
+						onClick={() => setEditingName(true)}
+					>
+						{newName}
+					</Typography>
+				)}
+
+				{editingName ? (
+					<div className="flex flex-row justify-center items-center gap-1">
+						<TextField
+							label="room name"
+							variant="standard"
+							value={newName}
+							onChange={(e) => setNewName(e.target.value)}
+							error={newName.trim().length === 0}
+						/>
+						<ClearIcon
+							className="cursor-pointer hover:scale-115"
+							onClick={() => {
+								setEditingName(false)
+								setNewName(device.name)
+							}}
+						/>
+						<CheckIcon
+							className={
+								newName.trim().length === 0
+									? 'opacity-30'
+									: 'cursor-pointer hover:scale-115'
+							}
+							onClick={() => {
+								if (newName.trim().length > 0) updateDeviceName(newName)
+							}}
+						/>
+					</div>
+				) : null}
+
 				<Typography variant="body2">{currentRoomName}</Typography>
 				<Typography variant="body2">model: {device.factoryName}</Typography>
 				<div className="flex gap-4 items-end mt-3 mb-2">
