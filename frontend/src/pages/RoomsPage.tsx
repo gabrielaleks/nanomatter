@@ -22,12 +22,17 @@ export default function DevicesPage() {
 	const [pairingCode, setPairingCode] = useState('')
 	const [deviceName, setDeviceName] = useState('')
 	const [roomName, setRoomName] = useState('')
+	const [createRoomError, setCreateRoomError] = useState<string | null>(null)
 	const [commissionJobId, setCommissionJobId] = useState<string | null>(null)
 	const queryClient = useQueryClient()
 
 	const { mutate: create } = useMutation({
 		mutationFn: (name: string) => createRoom(name),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: ['rooms'] }),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['rooms'] })
+			setCreateRoomError(null)
+		},
+		onError: (error: any) => setCreateRoomError(error?.response?.data?.message ?? 'failed to create room'),
 	})
 
 	const { data: commissionStatus } = useQuery({
@@ -168,7 +173,7 @@ export default function DevicesPage() {
 											variant="standard"
 											required
 											value={roomName}
-											onChange={(e) => setRoomName(e.target.value)}
+											onChange={(e) => { setRoomName(e.target.value); setCreateRoomError(null) }}
 										></TextField>
 									</div>
 									<Button
@@ -181,6 +186,11 @@ export default function DevicesPage() {
 									>
 										submit
 									</Button>
+									{createRoomError && (
+										<Alert severity="error" variant="outlined">
+											{createRoomError}
+										</Alert>
+									)}
 								</div>
 							</AccordionDetails>
 						</Accordion>

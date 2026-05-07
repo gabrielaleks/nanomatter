@@ -52,6 +52,12 @@ export class RoomsController {
       return
     }
 
+    const rooms = await this.repository.getRooms()
+    if (rooms.find((room => room.name === name))) {
+      res.status(400).json({ message: `Room with name '${name}' already exists` })
+      return
+    }
+
     this.repository.createRoom({ name })
 
     res.status(200).json({ message: `Room ${name} was added successfully` })
