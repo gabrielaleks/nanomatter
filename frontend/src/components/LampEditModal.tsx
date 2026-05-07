@@ -16,6 +16,7 @@ import Delete from '@mui/icons-material/Delete'
 import Slider from '@mui/material/Slider'
 import { Wheel, type ColorResult } from '@uiw/react-color'
 import { useState, useRef } from 'react'
+import useMediaQuery from '@mui/material/useMediaQuery'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
 	decommissionDevice,
@@ -50,6 +51,7 @@ export function LampEditModal({
 		rooms?.assigned.find((r) => r.id === selectedRoomId)?.name ?? roomName
 
 	const queryClient = useQueryClient()
+	const isSmall = useMediaQuery('(max-width:500px)')
 
 	const [color, setColor] = useState({
 		h: Math.round((device.hue! / 254) * 360),
@@ -63,12 +65,14 @@ export function LampEditModal({
 		top: '50%',
 		left: '50%',
 		transform: 'translate(-50%, -50%)',
-		width: 470,
+		width: { xs: '90vw', sm: 470 },
+		maxHeight: '90vh',
+		overflowY: 'auto',
 		bgcolor: 'background.paper',
 		border: '1px solid #000',
 		'border-color': 'white',
 		boxShadow: 20,
-		p: 4,
+		p: { xs: 2, sm: 4 },
 		outline: 'none',
 	}
 
@@ -142,9 +146,9 @@ export function LampEditModal({
 				</Typography>
 				<Typography variant="body2">{currentRoomName}</Typography>
 				<Typography variant="body2">model: {device.factoryName}</Typography>
-				<div className="flex gap-6 items-end mt-5 mb-3">
+				<div className="flex gap-4 items-end mt-3 mb-2">
 					<div className="flex flex-col items-center gap-3">
-						<Stack sx={{ height: 200 }}>
+						<Stack sx={{ height: { xs: 130, sm: 200 } }}>
 							<Slider
 								onChangeCommitted={(_e, value) =>
 									handleBrightnessUpdate({
@@ -182,6 +186,8 @@ export function LampEditModal({
 
 					<div className="flex flex-col items-center gap-3">
 						<Wheel
+							width={isSmall ? 110 : 200}
+							height={isSmall ? 110 : 200}
 							color={color}
 							onChange={(value) => {
 								setColor(value.hsva)
@@ -192,7 +198,7 @@ export function LampEditModal({
 					</div>
 
 					<div className="flex flex-col items-center gap-3">
-						<Stack sx={{ height: 200 }}>
+						<Stack sx={{ height: { xs: 130, sm: 200 } }}>
 							<Slider
 								onChangeCommitted={(_e, value) =>
 									handleColorTemperatureUpdate({
