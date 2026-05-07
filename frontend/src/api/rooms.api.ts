@@ -24,3 +24,7 @@ export async function updateRoom(
     name,
   })
 }
+
+export async function deleteRoom(id: number): Promise<void> {
+  await client.delete(`/rooms/${id}`)
+}

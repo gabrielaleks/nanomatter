@@ -9,7 +9,8 @@ import { LampEditModal } from './LampEditModal'
 import type { Device } from '../types/device'
 import ClearIcon from '@mui/icons-material/Clear'
 import CheckIcon from '@mui/icons-material/Check'
-import { updateRoom } from '../api/rooms.api'
+import { deleteRoom, updateRoom } from '../api/rooms.api'
+import Delete from '@mui/icons-material/Delete'
 
 type Props = {
 	room: Room
@@ -25,6 +26,11 @@ export function RoomCard({ room, isEditable = true }: Props) {
 
 	const { mutate: toggle } = useMutation({
 		mutationFn: (id: number) => toggleDevice(id),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: ['rooms'] }),
+	})
+
+	const { mutate: deleteRoomById } = useMutation({
+		mutationFn: (id: number) => deleteRoom(id),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: ['rooms'] }),
 	})
 
@@ -62,11 +68,26 @@ export function RoomCard({ room, isEditable = true }: Props) {
 					/>
 					<ClearIcon
 						className="cursor-pointer hover:scale-115"
-						onClick={() => { setEditingName(false); setNewName(room.name) }}
+						onClick={() => {
+							setEditingName(false)
+							setNewName(room.name)
+						}}
 					/>
 					<CheckIcon
-						className={newName.trim().length === 0 ? 'opacity-30' : 'cursor-pointer hover:scale-115'}
-						onClick={() => { if (newName.trim().length > 0) updateRoomName(newName) }}
+						className={
+							newName.trim().length === 0
+								? 'opacity-30'
+								: 'cursor-pointer hover:scale-115'
+						}
+						onClick={() => {
+							if (newName.trim().length > 0) updateRoomName(newName)
+						}}
+					/>
+					<span className="text-white/40 select-none mr-1 ml-1">|</span>
+					<Delete
+						fontSize="medium"
+						className="cursor-pointer hover:scale-115 mr-3"
+						onClick={() => deleteRoomById(room.id)}
 					/>
 				</div>
 			) : null}
