@@ -14,6 +14,7 @@ export function createRouter(
 
   router.get('/devices', controller.getAllDevices.bind(controller))
   router.get('/devices/:id', controller.getDeviceById.bind(controller))
+  router.patch('/devices/:id', controller.updateDeviceById.bind(controller))
 
   router.post('/devices/commission', controller.commissionDevice.bind(controller))
   router.get('/devices/:jobId/commission', controller.getCommissionStatus.bind(controller))

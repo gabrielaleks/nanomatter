@@ -87,6 +87,28 @@ export class DevicesController {
     res.status(500).json({ message: result.message })
   }
 
+  async updateDeviceById(req: Request, res: Response) {
+    const id = req.params.id
+
+    const { name } = req.body
+
+    if (!id || typeof id !== 'string') {
+      res.status(400).json({ error: 'device id is required' })
+      return
+    }
+
+    if (name) {
+      if (typeof name !== 'string' || name.trim().length == 0) {
+        res.status(400).json({ error: 'device name must be a valid string' })
+        return
+      }
+    }
+
+    await this.repository.updateDeviceById(id, name)
+
+    res.status(200).json({ message: `Device with id ${id} updated successfully` })
+  }
+
   async toggleDevice(req: Request, res: Response) {
     const id = req.params.id
 

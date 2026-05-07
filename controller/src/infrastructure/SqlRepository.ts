@@ -13,6 +13,11 @@ export class SqlRepository implements IRepository {
     )
   }
 
+  async updateDeviceById(id: string, name?: string): Promise<void> {
+    const query = `UPDATE devices SET name = ? WHERE id = ?`
+    this.db.prepare(query).run(name, id)
+  }
+
   async getDevices(): Promise<Device[]> {
     const query = `SELECT id, name FROM devices`
     const rows = this.db.prepare(query).all() as Device[]
@@ -34,6 +39,11 @@ export class SqlRepository implements IRepository {
   async createRoom(room: Room): Promise<void> {
     const query = `INSERT INTO rooms (name) VALUES (?)`
     this.db.prepare(query).run(room.name)
+  }
+
+  async updateRoomById(id: string, name?: string): Promise<void> {
+    const query = `UPDATE rooms SET name = ? WHERE id = ?`
+    this.db.prepare(query).run(name, id)
   }
 
   async getRooms(): Promise<Room[]> {

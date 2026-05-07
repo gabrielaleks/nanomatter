@@ -14,6 +14,7 @@ export function createRouter(
 
   router.get('/rooms', controller.getAllRooms.bind(controller))
   router.post('/rooms', controller.addRoom.bind(controller))
+  router.patch('/rooms/:id', controller.updateRoomById.bind(controller))
   router.delete('/rooms/:roomId', controller.deleteRoom.bind(controller))
   router.put('/rooms/:roomId/devices/:deviceId', controller.moveDeviceToRoom.bind(controller))
 

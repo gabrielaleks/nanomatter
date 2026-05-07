@@ -57,6 +57,28 @@ export class RoomsController {
     res.status(200).json({ message: `Room ${name} was added successfully` })
   }
 
+  async updateRoomById(req: Request, res: Response) {
+    const id = req.params.id
+
+    const { name } = req.body
+
+    if (!id || typeof id !== 'string') {
+      res.status(400).json({ error: 'room id is required' })
+      return
+    }
+
+    if (name) {
+      if (typeof name !== 'string' || name.trim().length == 0) {
+        res.status(400).json({ error: 'room name must be a valid string' })
+        return
+      }
+    }
+
+    this.repository.updateRoomById(id, name)
+
+    res.status(200).json({ message: `Room with id ${id} updated successfully` })
+  }
+
   async deleteRoom(req: Request, res: Response) {
     const roomId = req.params.roomId
 
