@@ -41,8 +41,10 @@ export function RoomCard({ room, isEditable = true }: Props) {
 			{editingName ? null : (
 				<Typography
 					variant="h6"
-					className={`${isEditable ? 'underline cursor-pointer hover:scale-102' : ''} text-center`}
+					className={`${isEditable ? 'underline cursor-pointer hover:scale-102' : ''}`}
 					fontWeight="bold"
+					width="fit-content"
+					mx="auto"
 					onClick={isEditable ? () => setEditingName(true) : () => {}}
 				>
 					{room.name}
