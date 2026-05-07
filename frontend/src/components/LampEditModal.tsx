@@ -8,6 +8,7 @@ import {
 	MenuItem,
 	Select,
 	InputLabel,
+	Button,
 	type SelectChangeEvent,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
@@ -17,6 +18,7 @@ import { Wheel, type ColorResult } from '@uiw/react-color'
 import { useState, useRef } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
+	decommissionDevice,
 	moveDeviceToRoom,
 	updateBrightness,
 	updateColorTemperature,
@@ -42,7 +44,10 @@ export function LampEditModal({
 }: Props) {
 	const { data: rooms } = useRooms()
 	const [selectedRoomId, setSelectedRoomId] = useState(roomId)
-	const currentRoomName = rooms?.assigned.find(r => r.id === selectedRoomId)?.name ?? roomName
+	const [confirming, setConfirming] = useState(false)
+
+	const currentRoomName =
+		rooms?.assigned.find((r) => r.id === selectedRoomId)?.name ?? roomName
 
 	const queryClient = useQueryClient()
 
@@ -113,6 +118,16 @@ export function LampEditModal({
 		setSelectedRoomId(newRoomId)
 		handleMoveToRoom({ roomId: newRoomId, deviceId: device.id })
 	}
+
+	const { mutate: handleDecommissioning } = useMutation({
+		mutationFn: ({ deviceId }: { deviceId: number }) =>
+			decommissionDevice(deviceId),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['rooms'] })
+			onClose()
+		},
+		onError: () => setConfirming(false),
+	})
 
 	return (
 		<Modal open={open} onClose={onClose}>
@@ -231,10 +246,34 @@ export function LampEditModal({
 						</Select>
 					</FormControl>
 				</div>
-				<div className="flex justify-between items-center gap-2 cursor-pointer hover:scale-105">
-					<Typography>decommission</Typography>
-					<Delete fontSize="small"></Delete>
-				</div>
+				{confirming ? (
+					<div className="flex items-center gap-2">
+						<Typography variant="body2">are you sure?</Typography>
+						<Button
+							size="small"
+							variant="outlined"
+							onClick={() => setConfirming(false)}
+						>
+							cancel
+						</Button>
+						<Button
+							size="small"
+							color="error"
+							variant="contained"
+							onClick={() => handleDecommissioning({ deviceId: device.id })}
+						>
+							confirm
+						</Button>
+					</div>
+				) : (
+					<div
+						className="flex justify-between items-center gap-2 cursor-pointer hover:scale-105"
+						onClick={() => setConfirming(true)}
+					>
+						<Typography>decommission</Typography>
+						<Delete fontSize="small" />
+					</div>
+				)}
 			</Box>
 		</Modal>
 	)

@@ -56,3 +56,9 @@ export async function moveDeviceToRoom(
 ): Promise<void> {
   await client.put(`/rooms/${roomId}/devices/${deviceId}`)
 }
+
+export async function decommissionDevice(
+  id: number,
+): Promise<void> {
+  await client.delete(`/devices/${id}`)
+}
