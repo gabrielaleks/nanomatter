@@ -8,6 +8,14 @@ export async function fetchRooms(): Promise<Rooms> {
   return res.data
 }
 
+export async function createRoom(
+  name: string
+): Promise<void> {
+  await client.post(`/rooms`, {
+    name,
+  })
+}
+
 export async function updateRoom(
   id: number,
   name?: string

@@ -13,15 +13,22 @@ import {
 } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { useState, useEffect } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { commissionDevice, getCommissionStatus } from '../api/devices.api'
+import { createRoom } from '../api/rooms.api'
 
 export default function DevicesPage() {
 	const { data: rooms, isLoading: isLoadingRooms, error } = useRooms()
 	const [pairingCode, setPairingCode] = useState('')
 	const [deviceName, setDeviceName] = useState('')
+	const [roomName, setRoomName] = useState('')
 	const [commissionJobId, setCommissionJobId] = useState<string | null>(null)
 	const queryClient = useQueryClient()
+
+	const { mutate: create } = useMutation({
+		mutationFn: (name: string) => createRoom(name),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: ['rooms'] }),
+	})
 
 	const { data: commissionStatus } = useQuery({
 		queryKey: ['commission-status', commissionJobId],
@@ -97,7 +104,6 @@ export default function DevicesPage() {
 									onSubmit={(e) => {
 										e.preventDefault()
 										const data = new FormData(e.currentTarget)
-										console.log(data.get('pairingCode'), data.get('deviceName'))
 										handleCommissioning(
 											data.get('pairingCode') as string,
 											data.get('deviceName') as string,
@@ -139,6 +145,43 @@ export default function DevicesPage() {
 										)}
 									</div>
 								</form>
+							</AccordionDetails>
+						</Accordion>
+						<Accordion className="mb-3" sx={{ maxWidth: 500 }}>
+							<AccordionSummary
+								expandIcon={<ExpandMoreIcon />}
+								aria-controls="panel2-content"
+								id="panel2-header"
+							>
+								<Typography
+									component="span"
+									sx={{ flexGrow: 1, textAlign: 'center' }}
+								>
+									create new room
+								</Typography>
+							</AccordionSummary>
+							<AccordionDetails className="flex flex-col">
+								<div className="flex flex-col gap-5">
+									<div className="flex flex-row justify-center">
+										<TextField
+											label="room name"
+											variant="standard"
+											required
+											value={roomName}
+											onChange={(e) => setRoomName(e.target.value)}
+										></TextField>
+									</div>
+									<Button
+										type="submit"
+										variant="contained"
+										sx={{ maxWidth: 200, mx: 'auto' }}
+										color="primary"
+										disabled={!roomName}
+										onClick={() => create(roomName)}
+									>
+										submit
+									</Button>
+								</div>
 							</AccordionDetails>
 						</Accordion>
 						{rooms && rooms.unassigned.length > 0 ? (
