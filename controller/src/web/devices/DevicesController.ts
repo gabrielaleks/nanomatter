@@ -238,13 +238,13 @@ export class DevicesController {
     }
 
     const result = await this.matterService.decommissionDevice(id)
-    await this.repository.removeDevice(id)
 
-    if (result.ok) {
-      res.status(200).json({ success: true, message: `Device ${id} removed` })
+    if (!result.ok) {
+      res.status(500).json({ message: result.message })
       return
     }
 
-    res.status(500).json({ message: result.message })
+    await this.repository.removeDevice(id)
+    res.status(200).json({ success: true, message: `Device ${id} removed` })
   }
 }

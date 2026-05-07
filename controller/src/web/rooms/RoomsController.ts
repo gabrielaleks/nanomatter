@@ -30,14 +30,15 @@ export class RoomsController {
 
     const unassigned = (matterDevices.data ?? [])
       .filter(d => !assignedIds.has(d.id))
-      .map(d => {
+      .flatMap(d => {
         const dbDevice = dbDevices.find(db => String(db.id) === d.id)
-        return {
+        if (!dbDevice) return []
+        return [{
           ...d,
-          id: dbDevice!.id,
-          name: dbDevice!.name,
+          id: dbDevice.id,
+          name: dbDevice.name,
           factoryName: d.name,
-        }
+        }]
       })
 
     res.status(200).json({ assigned: enrichedRooms, unassigned })
