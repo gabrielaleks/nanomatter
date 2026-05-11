@@ -5,7 +5,7 @@ services:
       dockerfile: ./controller/Dockerfile
       target: development
     container_name: nanomatter-controller
-    network_mode: host # required for mDNS multicast (Matter device discovery) # uncomment!
+    network_mode: host # required for mDNS multicast (Matter device discovery)
     # ports: # should be used only for development - do not commit.
     #   - '3000:3000'
     volumes:
