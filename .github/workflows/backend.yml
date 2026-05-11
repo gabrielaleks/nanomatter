@@ -69,5 +69,5 @@ jobs:
           key: ${{ secrets.RPI_SSH_KEY }}
           script: |
             cd ${{ secrets.RPI_DEPLOY_PATH }}
-            docker compose pull
-            docker compose up -d --force-recreate
+            docker compose pull controller
+            docker compose up controller -d --force-recreate
