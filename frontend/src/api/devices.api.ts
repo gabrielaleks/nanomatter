@@ -26,6 +26,14 @@ export async function toggleDevice(id: number): Promise<void> {
   await client.post(`/devices/${id}/toggle`)
 }
 
+export async function turnDeviceOn(id: number): Promise<void> {
+  await client.post(`/devices/${id}/on`)
+}
+
+export async function turnDeviceOff(id: number): Promise<void> {
+  await client.post(`/devices/${id}/off`)
+}
+
 export async function updateBrightness(
   id: number,
   brightnessLevel: number

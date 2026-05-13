@@ -3,7 +3,7 @@ import type { Room } from '../types/room'
 import Switch from '@mui/material/Switch'
 import TuneIcon from '@mui/icons-material/Tune'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { toggleDevice } from '../api/devices.api'
+import { turnDeviceOff, turnDeviceOn } from '../api/devices.api'
 import { useState } from 'react'
 import { LampEditModal } from './LampEditModal'
 import type { Device } from '../types/device'
@@ -24,8 +24,9 @@ export function RoomCard({ room, isEditable = true }: Props) {
 
 	const queryClient = useQueryClient()
 
-	const { mutate: toggle } = useMutation({
-		mutationFn: (id: number) => toggleDevice(id),
+	const { mutate: handleSwitch } = useMutation({
+		mutationFn: ({ id, checked }: { id: number; checked: boolean }) =>
+			checked ? turnDeviceOn(id) : turnDeviceOff(id),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: ['rooms'] }),
 	})
 
