@@ -1,4 +1,3 @@
-import "@matter/nodejs-ble"
 import { Environment } from "@matter/main"
 import { CommissioningController } from "@project-chip/matter.js"
 import { getLogger } from "../../utils/logger"
