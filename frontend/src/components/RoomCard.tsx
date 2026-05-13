@@ -105,7 +105,8 @@ export function RoomCard({ room, isEditable = true }: Props) {
 									size="small"
 									color="primary"
 									defaultChecked={device.on}
-									onChange={() => toggle(device.id)}
+									onChange={(_, checked) => handleSwitch({ id: device.id, checked })}
+									disabled={!device.reachable}
 								></Switch>
 								<TuneIcon
 									onClick={() => setSelectedDevice(device)}

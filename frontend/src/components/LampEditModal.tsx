@@ -196,7 +196,7 @@ export function LampEditModal({
 
 				<Typography variant="body2">{currentRoomName}</Typography>
 				<Typography variant="body2">model: {device.factoryName}</Typography>
-				<div className="flex gap-4 items-end mt-3 mb-2">
+				<div className={`flex gap-4 items-end mt-3 mb-2 ${!device.reachable ? 'opacity-40' : ''}`}>
 					<div className="flex flex-col items-center gap-3">
 						<Stack sx={{ height: { xs: 130, sm: 200 } }}>
 							<Slider
@@ -229,6 +229,7 @@ export function LampEditModal({
 										color: '#fff',
 									},
 								}}
+								disabled={!device.reachable}
 							></Slider>
 						</Stack>
 						<Typography variant="caption">Brightness</Typography>
@@ -239,10 +240,10 @@ export function LampEditModal({
 							width={isSmall ? 110 : 200}
 							height={isSmall ? 110 : 200}
 							color={color}
-							onChange={(value) => {
+							onChange={device.reachable ? (value) => {
 								setColor(value.hsva)
 								debouncedUpdate(value)
-							}}
+							} : () => {}}
 						/>
 						<Typography variant="caption">Color</Typography>
 					</div>
@@ -279,6 +280,7 @@ export function LampEditModal({
 										color: '#fff',
 									},
 								}}
+								disabled={!device.reachable}
 							></Slider>
 						</Stack>
 						<Typography variant="caption">Temperature</Typography>
