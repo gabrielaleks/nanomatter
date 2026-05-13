@@ -20,7 +20,9 @@ FROM node:20-bookworm-slim AS production
 WORKDIR /controller
 RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
-COPY --from=build /controller/dist ./dist
 COPY --from=build /controller/node_modules ./node_modules
 COPY --from=build /controller/package.json ./package.json
+COPY --from=build /controller/package-lock.json ./package-lock.json
+RUN npm rebuild
+COPY --from=build /controller/dist ./dist
 CMD ["node", "dist/index.js"]
