@@ -34,3 +34,5 @@ DELETE /api/rooms/:roomId/devices/:deviceId   → delete device from room
 - Per-device controls: on/off toggle, brightness, color temperature, hue/saturation wheel
 - Commission new devices via manual pairing code; polls job status until complete
 - Decommission devices with a confirmation step
+
+![nanomatter-screenshot](notes/assets/nanomatter-screenshot.png)
