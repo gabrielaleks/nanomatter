@@ -21,12 +21,23 @@ export function RoomCard({ room, isEditable = true }: Props) {
 	const [selectedDevice, setSelectedDevice] = useState<Device | null>(null)
 	const [editingName, setEditingName] = useState<boolean>(false)
 	const [newName, setNewName] = useState(room.name)
+	const [deviceStates, setDeviceStates] = useState<Record<number, boolean>>(
+		() => Object.fromEntries(room.devices.map((d) => [d.id, d.on]))
+	)
 
 	const queryClient = useQueryClient()
 
 	const { mutate: handleSwitch } = useMutation({
 		mutationFn: ({ id, checked }: { id: number; checked: boolean }) =>
 			checked ? turnDeviceOn(id) : turnDeviceOff(id),
+		onMutate: ({ id, checked }) => {
+			const previous = deviceStates[id]
+			setDeviceStates((prev) => ({ ...prev, [id]: checked }))
+			return { id, previous }
+		},
+		onError: (_err, _vars, context) => {
+			if (context) setDeviceStates((prev) => ({ ...prev, [context.id]: context.previous }))
+		},
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: ['rooms'] }),
 	})
 
@@ -104,7 +115,7 @@ export function RoomCard({ room, isEditable = true }: Props) {
 								<Switch
 									size="small"
 									color="primary"
-									defaultChecked={device.on}
+									checked={deviceStates[device.id] ?? device.on}
 									onChange={(_, checked) => handleSwitch({ id: device.id, checked })}
 									disabled={!device.reachable}
 								></Switch>
