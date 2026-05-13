@@ -28,3 +28,7 @@ DELETE /api/rooms/:roomId/devices/:deviceId   → delete device from room
 ```
 
 ## frontend
+- Room dashboard: create, rename, and delete rooms; move devices between rooms
+- Per-device controls: on/off toggle, brightness, color temperature, hue/saturation wheel
+- Commission new devices via manual pairing code; polls job status until complete
+- Decommission devices with a confirmation step
