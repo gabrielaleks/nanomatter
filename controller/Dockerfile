@@ -25,4 +25,7 @@ COPY --from=build /controller/package.json ./package.json
 COPY --from=build /controller/package-lock.json ./package-lock.json
 RUN npm rebuild
 COPY --from=build /controller/dist ./dist
+COPY ./controller/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["node", "dist/index.js"]

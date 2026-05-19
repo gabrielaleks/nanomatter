@@ -1,6 +1,9 @@
 # nanomatter 🤏
 Lightweight Matter controller used for comissioning and controlling devices.
 
+Read about it here: [Nanomatter - Building a lightweight Matter controller](https://gabrielaleks.com/blog/building-a-lightweight-matter-controller/) and [Nanomatter - Building the frontend
+](https://gabrielaleks.com/blog/nanomatter-building-the-frontend/)
+
 ## backend
 ### `devices` endpoints
 
