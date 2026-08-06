@@ -5,15 +5,17 @@ services:
       dockerfile: ./controller/Dockerfile
       target: development
     container_name: nanomatter-controller
-    network_mode: host # required for mDNS multicast (Matter device discovery)
-    # ports: # should be used only for development - do not commit.
-    #   - '3000:3000'
+    network_mode: host # required for mDNS multicast (Matter device discovery) and BLE (raw HCI socket access)
+    cap_add:
+      - NET_ADMIN # required by noble to bring the HCI adapter up/scan
+      - NET_RAW
     volumes:
       - ./controller:/controller
       - ./controller/matter-storage:/matter
       - ./db:/db
     environment:
       - MATTER_STORAGE_PATH=/matter
+      - MATTER_BLE_ENABLE=true
 
   frontend:
     build:

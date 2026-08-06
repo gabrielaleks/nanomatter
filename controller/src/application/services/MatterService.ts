@@ -1,3 +1,4 @@
+import "@matter/nodejs-ble"
 import { Environment } from "@matter/main"
 import { CommissioningController } from "@project-chip/matter.js"
 import { getLogger } from "../../utils/logger"
@@ -77,6 +78,10 @@ export class MatterService implements IMatterService {
             discovery: {
               identifierData: {
                 shortDiscriminator: pairingData.shortDiscriminator,
+              },
+              discoveryCapabilities: {
+                ble: true,
+                onIpNetwork: true,
               },
             },
           })
