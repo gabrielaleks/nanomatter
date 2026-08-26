@@ -32,7 +32,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_PAT }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push frontend image
         run: |
@@ -51,6 +51,7 @@ jobs:
 
     permissions:
       id-token: write
+      packages: read
 
     steps:
       - name: Authenticate with Tailscale
@@ -67,7 +68,13 @@ jobs:
           host: ${{ secrets.RPI_TAILSCALE_IP }}
           username: ${{ secrets.RPI_USER }}
           key: ${{ secrets.RPI_SSH_KEY }}
+          envs: GHCR_USER,GHCR_TOKEN
           script: |
+            set -e
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
             cd ${{ secrets.RPI_DEPLOY_PATH }}
             docker compose pull frontend
             docker compose up frontend -d --force-recreate
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
